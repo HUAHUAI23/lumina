@@ -112,7 +112,8 @@ export const generateVideo = async (
   prompt: string,
   referenceAssets: Asset[],
   videoFile?: File,
-  audioFile?: File
+  audioFile?: File,
+  options: { aspectRatio: string, resolution: '720p' | '1080p' } = { aspectRatio: '16:9', resolution: '720p' }
 ): Promise<string> => {
   // Check API Key Selection for Veo
   if (window.aistudio && window.aistudio.hasSelectedApiKey) {
@@ -129,17 +130,16 @@ export const generateVideo = async (
   const ai = getGeminiClient();
 
   // Decide model based on inputs
-  // If we have reference images (assets), we MUST use veo-3.1-generate-preview (not fast)
-  // and conform to specific aspect/resolution requirements.
   const hasRefImages = referenceAssets && referenceAssets.length > 0;
   
+  // NOTE: If we have reference images, we MUST use veo-3.1-generate-preview.
+  // This model STRICTLY requires 720p and 16:9.
   const model = hasRefImages ? 'veo-3.1-generate-preview' : 'veo-3.1-fast-generate-preview';
   
   let config: any = {
     numberOfVideos: 1,
-    // Veo 3.1 with references supports 720p 16:9
-    resolution: hasRefImages ? '720p' : '720p',
-    aspectRatio: '16:9' 
+    resolution: hasRefImages ? '720p' : options.resolution,
+    aspectRatio: hasRefImages ? '16:9' : options.aspectRatio
   };
 
   let payload: any = {
@@ -178,13 +178,6 @@ export const generateVideo = async (
     }
     config.referenceImages = referenceImagesPayload;
   }
-
-  // Handle Video Input (Edit/Extend) - Currently mutually exclusive in this simple flow logic
-  // If user provided video, usually for variations/edit. 
-  // We prioritize Reference Images workflow if both exist for this specific feature request.
-  
-  // Note: For real Veo video editing, we would pass `video` param from a previous operation 
-  // or upload bytes if supported. The prompt implies "Source Video" is for analysis or context.
   
   console.log("Generating with payload:", payload);
 

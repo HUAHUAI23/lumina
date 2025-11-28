@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GenerationMode, FileWithPreview, AnalysisResult, Asset } from '../types';
 import FileUpload from '../components/FileUpload';
-import { Wand2, Loader2, PlayCircle, Film, Music, Image as ImageIcon, Info, Upload, Sparkles, X, Check, Plus } from 'lucide-react';
+import { Wand2, Loader2, PlayCircle, Film, Music, Image as ImageIcon, Info, Upload, Sparkles, X, Check, Plus, Settings2, Smartphone, Monitor, Square, Tv, MonitorPlay } from 'lucide-react';
 import { analyzeVideoContent, generateVideo, generateStyleImages } from '../services/geminiService';
 
 const Create: React.FC = () => {
@@ -26,8 +26,14 @@ const Create: React.FC = () => {
   // Analysis State
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
+  // Output Settings
+  const [aspectRatio, setAspectRatio] = useState<string>('16:9');
+  const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
+
   // Output
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+
+  const hasReferenceAssets = referenceAssets.length > 0;
 
   const handleAnalyze = async () => {
     if (!videoFile) return;
@@ -47,9 +53,6 @@ const Create: React.FC = () => {
       // Switch to Generate Tab to nudge user
       setRefTab('generate');
       
-      // Optional: Auto-trigger image generation?
-      // Let's let the user click "Generate" to save credits, but we set up the stage.
-      
     } catch (error) {
       alert("Analysis failed. Please ensure API Key is set.");
     } finally {
@@ -61,10 +64,7 @@ const Create: React.FC = () => {
     if (!imageGenPrompt) return;
     setIsGeneratingImages(true);
     try {
-      const images = await generateStyleImages(imageGenPrompt, videoFile?.file); // Pass video file frame? Or upload? 
-      // Current service expects image file for reference. We could pass the first frame of analysis?
-      // For simplicity, we just use text prompt here, or maybe pass an uploaded image if one exists in 'upload' tab?
-      // Let's just use text for now to keep it clean.
+      const images = await generateStyleImages(imageGenPrompt, videoFile?.file); 
       
       const newAssets: Asset[] = images.map((url, i) => ({
         id: `gen_${Date.now()}_${i}`,
@@ -117,7 +117,14 @@ const Create: React.FC = () => {
     setGeneratedVideoUrl(null);
 
     try {
-      const url = await generateVideo(prompt, referenceAssets, videoFile?.file, audioFile?.file);
+      // Pass the settings to the service
+      const url = await generateVideo(
+        prompt, 
+        referenceAssets, 
+        videoFile?.file, 
+        audioFile?.file,
+        { aspectRatio, resolution }
+      );
       setGeneratedVideoUrl(url);
     } catch (error) {
       console.error(error);
@@ -131,6 +138,14 @@ const Create: React.FC = () => {
     { id: GenerationMode.VIDEO_IMAGE_TEXT, label: 'Video + Image', icon: Film },
     { id: GenerationMode.VIDEO_IMAGE_AUDIO_TEXT, label: 'Full Suite', icon: Wand2 },
     { id: GenerationMode.AUDIO_IMAGE_TEXT, label: 'Audio + Image', icon: Music },
+  ];
+
+  const aspectRatios = [
+    { id: '16:9', label: '16:9', icon: Monitor },
+    { id: '9:16', label: '9:16', icon: Smartphone },
+    { id: '1:1', label: '1:1', icon: Square },
+    { id: '4:3', label: '4:3', icon: Tv },
+    { id: '21:9', label: '21:9', icon: MonitorPlay },
   ];
 
   return (
@@ -349,6 +364,67 @@ const Create: React.FC = () => {
                placeholder="Describe the action, camera movement, and final look..."
                className="w-full h-32 bg-zinc-900/50 border border-zinc-700 rounded-xl p-4 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-none"
              />
+          </div>
+
+          {/* 5. Output Settings */}
+          <div className="space-y-3">
+             <div className="flex justify-between items-center">
+                <label className="text-sm font-medium text-white flex items-center gap-2">
+                  <Settings2 className="w-4 h-4 text-zinc-400" /> Output Settings
+                </label>
+                {hasReferenceAssets && (
+                   <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700 flex items-center gap-1">
+                     <Info className="w-3 h-3" /> Locked by Reference Mode
+                   </span>
+                )}
+             </div>
+             
+             <div className="space-y-3">
+               {/* Aspect Ratio Grid */}
+               <div className={`space-y-2 ${hasReferenceAssets ? 'opacity-50 pointer-events-none' : ''}`}>
+                 <label className="text-xs text-zinc-500">Aspect Ratio</label>
+                 <div className="grid grid-cols-5 gap-2">
+                   {aspectRatios.map((ratio) => (
+                     <button 
+                       key={ratio.id}
+                       onClick={() => setAspectRatio(ratio.id)}
+                       className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-200 
+                         ${aspectRatio === ratio.id 
+                           ? 'bg-indigo-600/20 border-indigo-500 text-white' 
+                           : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                         }`}
+                     >
+                       <ratio.icon className="w-4 h-4 mb-1" />
+                       <span className="text-[10px] font-medium">{ratio.label}</span>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+               
+               {/* Resolution */}
+               <div className={`space-y-2 ${hasReferenceAssets ? 'opacity-50 pointer-events-none' : ''}`}>
+                 <label className="text-xs text-zinc-500">Resolution</label>
+                 <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                   <button 
+                     onClick={() => setResolution('720p')}
+                     className={`flex-1 py-1.5 rounded-md text-xs transition-colors ${resolution === '720p' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                   >
+                     720p
+                   </button>
+                   <button 
+                     onClick={() => setResolution('1080p')}
+                     className={`flex-1 py-1.5 rounded-md text-xs transition-colors ${resolution === '1080p' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                   >
+                     1080p
+                   </button>
+                 </div>
+               </div>
+             </div>
+             {hasReferenceAssets && (
+                <p className="text-[10px] text-indigo-300/80 pl-1">
+                  * Multi-reference mode requires 16:9 aspect ratio and 720p resolution.
+                </p>
+             )}
           </div>
         </div>
 
