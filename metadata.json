@@ -1,0 +1,8 @@
+{
+  "name": "Lumina AI Studio",
+  "description": "A professional AI video creation platform featuring multi-modal generation workflows, video analysis, and enterprise-grade asset management.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
