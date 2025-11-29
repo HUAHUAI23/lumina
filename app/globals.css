@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: #09090b;
+  --color-foreground: #f4f4f5;
+  --color-surface: #18181b;
+  --color-surfaceLight: #27272a;
+  --color-primary: #6366f1;
+  --color-primaryHover: #4f46e5;
+  
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Sidebar Specific (Mapping to our palette) */
+  --color-sidebar: #18181b;
+  --color-sidebar-foreground: #f4f4f5;
+  --color-sidebar-primary: #6366f1;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #27272a;
+  --color-sidebar-accent-foreground: #f4f4f5;
+  --color-sidebar-border: #27272a;
+  --color-sidebar-ring: #6366f1;
+}
+
+:root {
+  /* Override basic defaults to match the dark theme desired */
+  background-color: #09090b;
+  color: #f4f4f5;
+}
+
+/* Custom scrollbar to match original */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #18181b; 
+}
+::-webkit-scrollbar-thumb {
+  background: #3f3f46; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b; 
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}

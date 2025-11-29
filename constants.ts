@@ -1,5 +1,6 @@
-import { CreditPackage, Transaction, ChartDataPoint } from './types';
-import { LayoutDashboard, Video, Library, Wallet, Settings } from 'lucide-react';
+import { LayoutDashboard, Library, Settings, Video, Wallet } from 'lucide-react';
+
+import { ChartDataPoint, CreditPackage, Transaction } from './types';
 
 export const APP_NAME = "Lumina";
 
