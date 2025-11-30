@@ -4,9 +4,9 @@ import React, { useState } from 'react'
 import { Check, Film, Image as ImageIcon, Info, Loader2, Monitor, MonitorPlay, Music, Settings2, Smartphone, Sparkles, Square, Tv, Wand2, X } from 'lucide-react'
 import Image from 'next/image'
 
-import FileUpload from '../../components/FileUpload'
-import { analyzeVideoContent, generateStyleImages, generateVideo } from '../../services/geminiService'
-import { AnalysisResult, Asset, FileWithPreview, GenerationMode } from '../../types'
+import FileUpload from '../../../components/FileUpload'
+import { analyzeVideoContent, generateStyleImages, generateVideo } from '../../../services/geminiService'
+import { AnalysisResult, Asset, FileWithPreview, GenerationMode } from '../../../types'
 
 const Create: React.FC = () => {
   const [activeMode, setActiveMode] = useState<GenerationMode>(GenerationMode.VIDEO_IMAGE_TEXT)

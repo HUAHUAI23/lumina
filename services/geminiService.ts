@@ -69,6 +69,28 @@ export const generateVideo = async (
   return 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
 }
 
+// 4. Image Analysis (MOCKED)
+export const analyzeImage = async (file: File): Promise<string> => {
+  console.log('Mock analyzing image:', file.name)
+  await delay(1500)
+  return "A detailed description of the uploaded image, capturing its style, subject, and mood."
+}
+
+// 5. Advanced Image Generation (MOCKED)
+export const generateAdvancedImages = async (
+  prompt: string,
+  uploadedAssets: Asset[],
+  options: { groupMode: boolean; count: number; maxPerBatch?: number }
+): Promise<string[]> => {
+  console.log('Mock generating advanced images:', { prompt, uploadedAssets, options })
+  await delay(3000)
+
+  const count = options.groupMode ? options.count * 2 : options.count
+  return Array.from({ length: count }).map((_, i) => 
+    `https://picsum.photos/seed/${Date.now() + i}/512/512`
+  )
+}
+
 // --- Utilities ---
 // (Kept real as it is pure frontend)
 async function extractFramesFromVideoFile(videoFile: File, count: number): Promise<string[]> {

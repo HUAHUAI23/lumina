@@ -17,7 +17,7 @@
     </filter>
   </defs>
   
-
+  <rect width="400" height="400" fill="#121212" />
 
   <g transform="translate(200, 200)">
     <g style="mix-blend-mode: screen;">

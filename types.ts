@@ -1,9 +1,11 @@
-export type NavigationPage = 'dashboard' | 'create' | 'assets' | 'billing' | 'settings';
+export type NavigationPage = 'dashboard' | 'create' | 'image-studio' | 'assets' | 'billing' | 'settings';
 
 export enum GenerationMode {
   VIDEO_IMAGE_TEXT = 'mode1',
   VIDEO_IMAGE_AUDIO_TEXT = 'mode2',
   AUDIO_IMAGE_TEXT = 'mode3',
+  IMAGE_TEXT = 'mode4',
+  IMAGE_IMAGE = 'mode5',
 }
 
 export interface User {
@@ -37,6 +39,11 @@ export interface Project {
   status: 'processing' | 'completed' | 'failed';
   mode: GenerationMode;
   cost: number;
+  // New fields for dashboard
+  type?: 'video' | 'image';
+  duration?: string;
+  imageCount?: number;
+  resolution?: string;
 }
 
 export interface CreditPackage {

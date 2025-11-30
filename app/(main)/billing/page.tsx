@@ -3,8 +3,8 @@
 import React, { useMemo, useState } from 'react'
 import { Activity, ArrowUpRight, Calendar, CreditCard, DollarSign, Sparkles, Wallet } from 'lucide-react'
 
-import SimpleChart from '../../components/SimpleChart'
-import { CREDIT_PACKAGES, MOCK_RECHARGE_HISTORY, MOCK_TRANSACTIONS, MOCK_USAGE_HISTORY } from '../../constants'
+import SimpleChart from '../../../components/SimpleChart'
+import { CREDIT_PACKAGES, MOCK_RECHARGE_HISTORY, MOCK_TRANSACTIONS, MOCK_USAGE_HISTORY } from '../../../constants'
 
 type TimeRange = '7D' | '1M' | '3M'
 

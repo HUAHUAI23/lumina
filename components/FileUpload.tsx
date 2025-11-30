@@ -13,6 +13,7 @@ interface FileUploadProps {
   onRemove: () => void
   selectedFile: FileWithPreview | null
   type: 'video' | 'image' | 'audio'
+  className?: string
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -21,7 +22,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
   onFileSelect,
   onRemove,
   selectedFile,
-  type
+  type,
+  className
 }) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -64,7 +66,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   if (selectedFile) {
     return (
-      <div className="relative group w-full h-32 rounded-xl border border-zinc-700 bg-zinc-900/50 overflow-hidden flex items-center justify-center">
+      <div className={`relative group w-full rounded-xl border border-zinc-700 bg-zinc-900/50 overflow-hidden flex items-center justify-center ${className || 'h-32'}`}>
         {type === 'image' && (
           <>
             <Image
@@ -106,11 +108,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`
-        w-full h-32 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer
+        w-full rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer
         flex flex-col items-center justify-center
         ${isDragging
           ? 'border-primary bg-primary/10'
           : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/50 bg-zinc-900/30'}
+        ${className || 'h-32'}
       `}
     >
       <input

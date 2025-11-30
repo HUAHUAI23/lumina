@@ -1,4 +1,4 @@
-import { LayoutDashboard, Library, Settings, Video, Wallet } from 'lucide-react';
+import { Image, LayoutDashboard, Library, Settings, Video, Wallet } from 'lucide-react';
 
 import { ChartDataPoint, CreditPackage, Transaction } from './types';
 
@@ -6,7 +6,8 @@ export const APP_NAME = "Lumina";
 
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'create', label: 'Studio', icon: Video },
+  { id: 'create', label: 'Video Studio', icon: Video },
+  { id: 'image-studio', label: 'Image Studio', icon: Image },
   { id: 'assets', label: 'Assets', icon: Library },
   { id: 'billing', label: 'Wallet', icon: Wallet },
   { id: 'settings', label: 'Settings', icon: Settings },
