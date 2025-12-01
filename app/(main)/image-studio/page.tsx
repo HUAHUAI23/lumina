@@ -1,14 +1,16 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Asset, FileWithPreview } from '../../../types'
-import FileUpload from '../../../components/FileUpload'
 import {
-  Wand2, Loader2, Image as ImageIcon, Layers,
-  Settings2, X, Sparkles, Grid,
-  Trash2, Download, Zap
+Download, Grid,
+Image as ImageIcon, Layers,
+Loader2,   Settings2, Sparkles,   Trash2,   Wand2, X, Zap
 } from 'lucide-react'
+import Image from 'next/image'
+
+import FileUpload from '../../../components/FileUpload'
 import { analyzeImage, generateAdvancedImages } from '../../../services/geminiService'
+import { Asset, FileWithPreview } from '../../../types'
 
 const ImageStudio: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'txt2img' | 'img2img'>('txt2img')
@@ -135,7 +137,7 @@ const ImageStudio: React.FC = () => {
             <div className="grid grid-cols-4 gap-2">
               {uploadedAssets.map((asset) => (
                 <div key={asset.id} className="relative group aspect-square rounded-lg overflow-hidden border border-zinc-700">
-                  <img src={asset.url} className="w-full h-full object-cover" />
+                  <Image src={asset.url} alt="Uploaded reference image" fill className="object-cover" />
                   <button
                     onClick={() => removeAsset(asset.id)}
                     className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-full text-white transition-colors opacity-0 group-hover:opacity-100"
@@ -327,7 +329,7 @@ const ImageStudio: React.FC = () => {
             {/* Results */}
             {generatedImages.map((src, i) => (
               <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500 transition-colors">
-                <img src={src} className="w-full h-full object-cover" loading="lazy" />
+                <Image src={src} alt={`Generated image ${i + 1}`} fill className="object-cover" loading="lazy" />
 
                 {/* Overlay Actions */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]">

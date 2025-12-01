@@ -6,7 +6,7 @@ export const APP_NAME = "Lumina";
 
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'create', label: 'Video Studio', icon: Video },
+  { id: 'video-studio', label: 'Video Studio', icon: Video },
   { id: 'image-studio', label: 'Image Studio', icon: Image },
   { id: 'assets', label: 'Assets', icon: Library },
   { id: 'billing', label: 'Wallet', icon: Wallet },

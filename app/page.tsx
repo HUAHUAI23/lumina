@@ -1,13 +1,15 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
-  ArrowRight, Video, Sparkles, Layers,
-  Command, Aperture, Zap, Cpu, Globe, PlayCircle, Star
+  Aperture, ArrowRight, Command, Cpu, Globe, Layers,
+  PlayCircle, Sparkles, Star,
+  Video, Zap
 } from 'lucide-react'
-import { APP_NAME } from '../constants'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+
+import { APP_NAME } from '../constants'
 
 // --- Spotlight Card Component ---
 const SpotlightCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => {
@@ -69,7 +71,7 @@ export default function Home() {
       window.removeEventListener('scroll', handleScroll)
       clearInterval(interval)
     }
-  }, [])
+  }, [prompts.length])
 
   const onNavigate = (page: string) => {
     if (page === 'login') {
@@ -371,7 +373,7 @@ export default function Home() {
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-xs text-zinc-600">© 2024 Lumina AI Inc. All rights reserved.</div>
+            <div className="text-xs text-zinc-600">© 2025 Lumina AI Inc. All rights reserved.</div>
             <div className="flex gap-6">
               {['Twitter', 'GitHub', 'Discord', 'LinkedIn'].map(social => (
                 <span key={social} className="text-xs font-medium text-zinc-500 hover:text-white cursor-pointer transition-colors">{social}</span>

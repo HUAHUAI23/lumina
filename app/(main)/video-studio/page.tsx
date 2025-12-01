@@ -8,7 +8,7 @@ import FileUpload from '../../../components/FileUpload'
 import { analyzeVideoContent, generateStyleImages, generateVideo } from '../../../services/geminiService'
 import { AnalysisResult, Asset, FileWithPreview, GenerationMode } from '../../../types'
 
-const Create: React.FC = () => {
+const VideoStudio: React.FC = () => {
   const [activeMode, setActiveMode] = useState<GenerationMode>(GenerationMode.VIDEO_IMAGE_TEXT)
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
@@ -558,5 +558,5 @@ const Create: React.FC = () => {
   )
 }
 
-export default Create;
+export default VideoStudio;
 

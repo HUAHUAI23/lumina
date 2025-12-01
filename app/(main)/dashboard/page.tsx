@@ -92,7 +92,7 @@ const Dashboard: React.FC = () => {
             New Image
           </button>
           <button
-            onClick={() => router.push('/create')}
+            onClick={() => router.push('/video-studio')}
             className="flex items-center gap-2 bg-white text-black px-5 py-3 rounded-xl font-semibold hover:bg-zinc-200 transition-colors shadow-lg shadow-white/10"
           >
             <Plus className="w-5 h-5" />

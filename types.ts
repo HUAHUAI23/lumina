@@ -1,4 +1,4 @@
-export type NavigationPage = 'dashboard' | 'create' | 'image-studio' | 'assets' | 'billing' | 'settings';
+export type NavigationPage = 'dashboard' | 'video-studio' | 'image-studio' | 'assets' | 'billing' | 'settings';
 
 export enum GenerationMode {
   VIDEO_IMAGE_TEXT = 'mode1',
