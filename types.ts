@@ -8,6 +8,15 @@ export enum GenerationMode {
   IMAGE_IMAGE = 'mode5',
 }
 
+export enum TaskType {
+  VIDEO_GENERATION = 'video_generation',
+  VIDEO_LIPSYNC = 'video_lipsync',
+  VIDEO_MOTION = 'video_motion',
+  IMAGE_TXT2IMG = 'image_txt2img',
+  IMAGE_IMG2IMG = 'image_img2img',
+  IMAGE_3D_MODEL = 'image_3d_model',
+}
+
 export interface User {
   id: string;
   name: string;
@@ -38,6 +47,7 @@ export interface Project {
   createdAt: string;
   status: 'processing' | 'completed' | 'failed';
   mode: GenerationMode;
+  taskType?: TaskType;
   cost: number;
   // New fields for dashboard
   type?: 'video' | 'image';

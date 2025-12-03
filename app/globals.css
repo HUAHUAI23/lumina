@@ -4,51 +4,93 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #09090b;
-  --color-foreground: #f4f4f5;
-  --color-surface: #18181b;
-  --color-surfaceLight: #27272a;
+  --color-background: #030304;
+  --color-surface: #0A0A0C;
+  --color-surfaceLight: #16161A;
+  --color-border: rgba(255,255,255,0.06);
   --color-primary: #6366f1;
   --color-primaryHover: #4f46e5;
+  --color-secondary: #8b5cf6;
   
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
-  /* Sidebar Specific (Mapping to our palette) */
-  --color-sidebar: #18181b;
-  --color-sidebar-foreground: #f4f4f5;
+  --color-sidebar: #0A0A0C;
+  --color-sidebar-foreground: #e4e4e7;
   --color-sidebar-primary: #6366f1;
   --color-sidebar-primary-foreground: #ffffff;
-  --color-sidebar-accent: #27272a;
-  --color-sidebar-accent-foreground: #f4f4f5;
-  --color-sidebar-border: #27272a;
+  --color-sidebar-accent: #16161A;
+  --color-sidebar-accent-foreground: #e4e4e7;
+  --color-sidebar-border: rgba(255,255,255,0.06);
   --color-sidebar-ring: #6366f1;
+
+  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+  
+  --image-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* Custom Utilities */
+.bg-noise {
+  background-image: var(--image-noise);
 }
 
 :root {
-  /* Override basic defaults to match the dark theme desired */
-  background-color: #09090b;
-  color: #f4f4f5;
+  background-color: var(--color-background);
+  color: #e4e4e7; /* zinc-200 */
 }
 
-/* Custom scrollbar to match original */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #18181b; 
+  background: transparent; 
 }
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46; 
-  border-radius: 4px;
+  background: #27272a; 
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b; 
+  background: #3f3f46; 
+}
+
+/* Range Slider Styling */
+input[type=range] {
+  -webkit-appearance: none; 
+  background: transparent; 
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -6px; 
+  box-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: #3f3f46;
+  border-radius: 2px;
+}
+
+/* Global Animation Classes */
+.fade-enter {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-zinc-200 font-sans antialiased;
   }
 }

@@ -1,10 +1,10 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { Loader2, LogOut } from 'lucide-react'
+import { Loader2, LogOut, Plus, Wallet } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { APP_NAME, NAVIGATION_ITEMS } from '../constants'
 
@@ -16,9 +16,9 @@ interface UserData {
   credits: number
 }
 
-// We don't need props for navigation anymore as we use Next.js router
 const Sidebar: React.FC = () => {
   const pathname = usePathname()
+  const router = useRouter()
   const [user, setUser] = useState<UserData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -61,7 +61,6 @@ const Sidebar: React.FC = () => {
       if (response.ok) {
         // Clear user state
         setUser(null)
-
         // Force a hard navigation to login page (clears all client state)
         window.location.href = '/login'
       } else {
@@ -75,16 +74,15 @@ const Sidebar: React.FC = () => {
   }
 
   return (
-    <aside className="w-20 lg:w-64 border-r border-zinc-800 bg-surface flex flex-col h-full transition-all duration-300 flex-shrink-0">
-      <div className="p-6 flex items-center gap-3">
-        <div className="relative w-8 h-8 flex items-center justify-center">
-          <div className="absolute inset-0 bg-indigo-500/30 blur-md rounded-full"></div>
-          <Image src="/icon.svg" alt="Lumina Logo" width={32} height={32} className="relative z-10" />
+    <aside className="w-20 lg:w-72 border-r border-border bg-background flex flex-col h-full transition-all duration-300 relative z-20 flex-shrink-0">
+      <div className="p-8 flex items-center gap-3">
+        <div className="w-9 h-9 bg-white text-black rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.1)] relative overflow-hidden">
+          <span className="font-bold font-sans text-lg relative z-10">L</span>
         </div>
-        <span className="font-bold text-xl text-white hidden lg:block tracking-tight">{APP_NAME}</span>
+        <span className="font-semibold text-lg text-white hidden lg:block tracking-tight">{APP_NAME}</span>
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-4 py-2 space-y-1.5">
         {NAVIGATION_ITEMS.map((item) => {
           const active = isActive(item.id)
           const href = item.id === 'dashboard' ? '/dashboard' : `/${item.id}`
@@ -94,82 +92,107 @@ const Sidebar: React.FC = () => {
               key={item.id}
               href={href}
               className={`
-                w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative
                 ${active
-                  ? 'bg-zinc-800 text-white shadow-inner'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'}
+                  ? 'text-white'
+                  : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}
               `}
             >
-              <item.icon className={`w-5 h-5 ${active ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
-              <span className="hidden lg:block font-medium text-sm">{item.label}</span>
+              {/* Active Glow Background */}
+              {active && (
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent rounded-xl border border-indigo-500/10"></div>
+              )}
+
+              {/* Active Indicator Line */}
+              {active && (
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-4 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]"></div>
+              )}
+
+              <item.icon
+                className={`w-5 h-5 relative z-10 transition-colors duration-300 ${active ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-300'}`}
+                strokeWidth={active ? 2.5 : 2}
+              />
+              <span className={`hidden lg:block text-sm relative z-10 font-medium ${active ? 'translate-x-1' : ''} transition-transform`}>
+                {item.label}
+              </span>
             </Link>
           )
         })}
       </nav>
 
-      <div className="p-4 border-t border-zinc-800">
-        <div className="bg-zinc-900 rounded-xl p-4 hidden lg:block border border-zinc-800">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+      <div className="p-4 lg:p-6 border-t border-border">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+          </div>
+        ) : user ? (
+          <>
+            {/* User Profile - Compact & Elegant */}
+            <div className="hidden lg:flex items-center gap-3 mb-6 px-2">
+              <div className="relative cursor-pointer hover:opacity-80 transition-opacity">
+                <Image
+                  src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${user.username}`}
+                  alt="User Avatar"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 rounded-full bg-surfaceLight object-cover border border-white/10"
+                />
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-background rounded-full"></div>
+              </div>
+              <div className="overflow-hidden flex-1">
+                <p className="text-sm font-medium text-white truncate">{user.username}</p>
+                <p className="text-xs text-zinc-500 truncate">{user.email || 'Pro Plan'}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="text-zinc-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-lg"
+                title="Sign Out"
+              >
+                {isLoggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+              </button>
             </div>
-          ) : user ? (
-            <>
-              {/* User Profile Info */}
-              <div className="flex items-center gap-3 mb-4 border-b border-zinc-800 pb-3">
-                <div className="relative w-8 h-8 flex-shrink-0">
-                  <Image
-                    src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${user.username}`}
-                    alt="User Avatar"
-                    fill
-                    className="rounded-full bg-zinc-800 object-cover"
-                  />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-zinc-900 rounded-full z-10"></div>
-                </div>
-                <div className="overflow-hidden flex-1">
-                  <p className="text-sm font-medium text-white truncate">{user.username}</p>
-                  <p className="text-[10px] text-zinc-500 truncate">{user.email || 'No email'}</p>
-                </div>
-              </div>
 
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-zinc-400">CREDITS</span>
-                <span className="text-xs font-bold text-indigo-400">{user.credits.toLocaleString()}</span>
-              </div>
-              <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-indigo-600 h-full rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min((user.credits / 1000) * 100, 100)}%` }}
-                ></div>
-              </div>
+            {/* Elegant Pay-As-You-Go Wallet Card */}
+            <div
+              onClick={() => router.push('/billing')}
+              className="relative overflow-hidden rounded-2xl border border-white/5 bg-surfaceLight/50 group cursor-pointer transition-all duration-300 hover:border-indigo-500/30 hover:shadow-glow hidden lg:block"
+            >
+              {/* Diffused Glow Effects */}
+              <div className="absolute -right-6 -top-6 w-20 h-20 bg-indigo-500/10 blur-[40px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-500"></div>
+              <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-violet-500/10 blur-[40px] rounded-full group-hover:bg-violet-500/20 transition-all duration-500"></div>
 
-              <div className="flex gap-2 mt-3">
-                <Link
-                  href="/billing"
-                  className="flex-1 py-1.5 text-xs bg-white text-black rounded-lg font-semibold hover:bg-zinc-200 transition-colors flex items-center justify-center"
-                >
-                  Top Up
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="px-2 py-1.5 bg-zinc-800 text-zinc-400 hover:text-white rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Sign Out"
-                >
-                  {isLoggingOut ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <LogOut className="w-4 h-4" />
-                  )}
-                </button>
+              <div className="relative z-10 p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <Wallet className="w-3 h-3" />
+                    Balance
+                  </div>
+                  <div className="w-2 h-2 rounded-full bg-emerald-500/50 animate-pulse"></div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-sans font-semibold text-white">{user.credits}</span>
+                    <span className="text-xs text-zinc-500 font-medium">.00</span>
+                  </div>
+
+                  <button
+                    onClick={(e) => { e.stopPropagation(); router.push('/billing') }}
+                    className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white text-white hover:text-black flex items-center justify-center transition-all duration-300"
+                    title="Top Up"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </>
-          ) : (
-            <div className="text-center py-4 text-sm text-zinc-500">
-              Failed to load user data
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="text-center py-4 text-sm text-zinc-500">
+            Not logged in
+          </div>
+        )}
       </div>
     </aside>
   )
