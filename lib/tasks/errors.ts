@@ -14,11 +14,8 @@ export class TaskError extends Error {
 }
 
 export class InsufficientBalanceError extends TaskError {
-  constructor(
-    public readonly required: number,
-    public readonly available: number
-  ) {
-    super(`余额不足，需要 ${required} 分，当前余额 ${available} 分`, false)
+  constructor(public readonly required: number, public readonly available: number) {
+    super(`余额不足，需要 ${required} 积分，当前余额 ${available} 积分`, false)
     this.name = 'InsufficientBalanceError'
   }
 }

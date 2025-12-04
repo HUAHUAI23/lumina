@@ -32,7 +32,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      user: {
+      data: {
         id: user.id,
         username: user.username,
         email: user.email,

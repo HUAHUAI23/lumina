@@ -7,27 +7,203 @@
   --color-background: #030304;
   --color-surface: #0A0A0C;
   --color-surfaceLight: #16161A;
-  --color-border: rgba(255,255,255,0.06);
+  --color-border: rgba(255, 255, 255, 0.06);
   --color-primary: #6366f1;
   --color-primaryHover: #4f46e5;
   --color-secondary: #8b5cf6;
-  
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
+
   --color-sidebar: #0A0A0C;
   --color-sidebar-foreground: #e4e4e7;
   --color-sidebar-primary: #6366f1;
   --color-sidebar-primary-foreground: #ffffff;
   --color-sidebar-accent: #16161A;
   --color-sidebar-accent-foreground: #e4e4e7;
-  --color-sidebar-border: rgba(255,255,255,0.06);
+  --color-sidebar-border: rgba(255, 255, 255, 0.06);
   --color-sidebar-ring: #6366f1;
 
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
-  
+
   --image-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-float-slow: float 6s ease-in-out infinite;
+  --animate-float-delayed: float 6s ease-in-out 3s infinite;
+  --animate-blob: blob 20s infinite;
+
+  --animate-scroll: scroll 60s linear infinite;
+  --animate-blink: blink 1s step-end infinite;
+  --animate-hero-float-slow: hero-float-slow 8s ease-in-out infinite;
+  --animate-hero-float-delayed: hero-float-delayed 10s ease-in-out 2s infinite;
+  --animate-light-sweep: light-sweep 8s ease-in-out infinite;
+  --animate-light-pulse: light-pulse 4s ease-in-out infinite;
+  --animate-light-flicker: light-flicker 3s ease-in-out infinite;
+  --animate-hero-pulse-slow: hero-pulse-slow 6s ease-in-out infinite;
+  --animate-glow-pulse: glow-pulse 5s ease-in-out infinite;
+
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes hero-float-slow {
+
+    0%,
+    100% {
+      transform: translateY(0) rotate(-6deg);
+    }
+
+    50% {
+      transform: translateY(-20px) rotate(-3deg);
+    }
+  }
+
+  @keyframes hero-float-delayed {
+
+    0%,
+    100% {
+      transform: translateY(0) rotate(3deg);
+    }
+
+    50% {
+      transform: translateY(-15px) rotate(6deg);
+    }
+  }
+
+  @keyframes light-sweep {
+
+    0%,
+    100% {
+      transform: translateX(-50%) rotate(-2deg);
+      opacity: 0.6;
+    }
+
+    50% {
+      transform: translateX(-50%) rotate(2deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes light-pulse {
+
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes light-flicker {
+
+    0%,
+    100% {
+      opacity: 0.8;
+    }
+
+    25% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.9;
+    }
+
+    75% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes hero-pulse-slow {
+
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: translateX(-50%) scale(1);
+    }
+
+    50% {
+      opacity: 0.8;
+      transform: translateX(-50%) scale(1.2);
+    }
+  }
+
+  @keyframes glow-pulse {
+
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    50% {
+      opacity: 0.6;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 0 0;
+    }
+
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
 }
 
 /* Custom Utilities */
@@ -35,9 +211,42 @@
   background-image: var(--image-noise);
 }
 
+.bg-shine {
+  background-image: linear-gradient(45deg, transparent 25%, rgba(255, 255, 255, 0.1) 50%, transparent 75%);
+  background-size: 200% 200%;
+}
+
+.text-glow {
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.text-glow-indigo {
+  text-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 16px 64px rgba(0, 0, 0, 0.08);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
 :root {
   background-color: var(--color-background);
-  color: #e4e4e7; /* zinc-200 */
+  color: #e4e4e7;
+  /* zinc-200 */
 }
 
 /* Custom scrollbar */
@@ -45,22 +254,26 @@
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: transparent; 
+  background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #27272a; 
+  background: #27272a;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46; 
+  background: #3f3f46;
 }
 
 /* Range Slider Styling */
 input[type=range] {
-  -webkit-appearance: none; 
-  background: transparent; 
+  -webkit-appearance: none;
+  background: transparent;
 }
+
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   height: 16px;
@@ -68,9 +281,10 @@ input[type=range]::-webkit-slider-thumb {
   border-radius: 50%;
   background: #ffffff;
   cursor: pointer;
-  margin-top: -6px; 
-  box-shadow: 0 0 10px rgba(255,255,255,0.5);
+  margin-top: -6px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
+
 input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
   height: 4px;
@@ -85,8 +299,15 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @layer base {

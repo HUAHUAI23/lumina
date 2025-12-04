@@ -31,9 +31,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      exists: !!existingUser,
-      needsPassword: !!existingUser, // If exists, needs password to login
-      needsRegistration: !existingUser, // If not exists, needs to register
+      data: {
+        exists: !!existingUser,
+        needsPassword: !!existingUser, // If exists, needs password to login
+        needsRegistration: !existingUser, // If not exists, needs to register
+      },
     })
   } catch (error) {
     console.error('Check user error:', error)

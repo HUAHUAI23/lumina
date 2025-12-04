@@ -38,11 +38,13 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        action: 'login',
-        user: {
-          id: user.userId,
-          username: user.username,
-          email: user.email,
+        data: {
+          action: 'login',
+          user: {
+            id: user.userId,
+            username: user.username,
+            email: user.email,
+          },
         },
       })
     } else {
@@ -62,11 +64,13 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        action: 'register',
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
+        data: {
+          action: 'register',
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+          },
         },
       })
     }

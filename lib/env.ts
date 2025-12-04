@@ -12,6 +12,7 @@ export const env = createEnv({
     AUTH_SECRET: z.string().min(1),
     GITHUB_CLIENT_ID: z.string().optional(),
     GITHUB_CLIENT_SECRET: z.string().optional(),
+    // 除始积分
     INITIAL_CREDITS: z.coerce.number().default(0),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     // Login method toggles
@@ -44,7 +45,8 @@ export const env = createEnv({
     TASK_SCHEDULER_ENABLED: z.coerce.boolean().default(true), // 调度器开关
     TASK_SCHEDULER_INTERVAL: z.coerce.number().default(5), // 主循环间隔（秒）
     TASK_ASYNC_POLL_INTERVAL: z.coerce.number().default(30), // 异步查询间隔（秒）
-    TASK_TIMEOUT_MINUTES: z.coerce.number().default(30), // 任务超时时间（分钟）
+    TASK_TIMEOUT_MINUTES: z.coerce.number().default(30), // 同步任务超时时间（分钟）
+    TASK_ASYNC_TIMEOUT_MINUTES: z.coerce.number().default(120), // 异步任务超时时间（分钟）
     TASK_MAX_RETRIES: z.coerce.number().default(3), // 最大重试次数
     TASK_BATCH_SIZE: z.coerce.number().default(10), // 每次拉取任务数
   },

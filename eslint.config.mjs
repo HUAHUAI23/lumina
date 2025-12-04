@@ -64,6 +64,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "components/ui/**",
     "components/animate-ui/**",
+    "lib/api-client.examples.ts",
+    "lib/api-usage-examples.ts"
   ]),
 ])
 

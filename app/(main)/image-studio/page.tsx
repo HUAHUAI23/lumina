@@ -7,26 +7,28 @@ import {
   ChevronDown,
   Download, Grid,
   Image as ImageIcon, Layers,
-  Loader2, Settings2, Sparkles, Trash2, Type, Wand2, X, Zap
+  Loader2, Settings2, Sparkles, Type, Wand2, X, Zap
 } from 'lucide-react'
-import Image from 'next/image'
 
 import FileUpload from '@/components/FileUpload'
 import type { Asset, FileWithPreview } from '@/types'
 
 import { analyzeImage, generateAdvancedImages } from '../../../services/geminiService'
 
-const TaskType = {
+const TASK_TYPES = {
   VIDEO_LIPSYNC: 'video_lipsync',
   VIDEO_MOTION: 'video_motion',
   VIDEO_GENERATION: 'video_generation',
   IMAGE_3D_MODEL: 'image_3d_model',
   IMAGE_IMG2IMG: 'image_img2img',
   IMAGE_TXT2IMG: 'image_txt2img',
-}
+} as const
+
+type TaskType = typeof TASK_TYPES[keyof typeof TASK_TYPES]
+
 const ImageStudio: React.FC = () => {
 
-  const [activeTask, setActiveTask] = useState<TaskType>(TaskType.IMAGE_TXT2IMG)
+  const [activeTask, setActiveTask] = useState<TaskType>(TASK_TYPES.IMAGE_TXT2IMG)
 
   const [isTaskSelectorOpen, setTaskSelectorOpen] = useState(false)
 
@@ -124,7 +126,7 @@ const ImageStudio: React.FC = () => {
 
   const handleGenerate = async () => {
 
-    if ((activeTask === TaskType.IMAGE_IMG2IMG) && uploadedAssets.length === 0) {
+    if ((activeTask === TASK_TYPES.IMAGE_IMG2IMG) && uploadedAssets.length === 0) {
 
       alert("Image-to-Image mode requires at least one reference image.")
 
@@ -172,11 +174,11 @@ const ImageStudio: React.FC = () => {
 
   const imageTasks = [
 
-    { id: TaskType.IMAGE_TXT2IMG, label: 'Text to Image', description: 'Create from scratch with prompts', icon: Type },
+    { id: TASK_TYPES.IMAGE_TXT2IMG, label: 'Text to Image', description: 'Create from scratch with prompts', icon: Type },
 
-    { id: TaskType.IMAGE_IMG2IMG, label: 'Image to Image', description: 'Remix existing images', icon: Layers },
+    { id: TASK_TYPES.IMAGE_IMG2IMG, label: 'Image to Image', description: 'Remix existing images', icon: Layers },
 
-    { id: TaskType.IMAGE_3D_MODEL, label: '3D Model Generation', description: 'Generate 3D assets (Preview)', icon: Box },
+    { id: TASK_TYPES.IMAGE_3D_MODEL, label: '3D Model Generation', description: 'Generate 3D assets (Preview)', icon: Box },
 
   ]
 
@@ -184,21 +186,23 @@ const ImageStudio: React.FC = () => {
 
   return (
 
-    <div className="h-full flex flex-col md:flex-row bg-background text-zinc-100 overflow-hidden">
-
-
+    <div className="h-full flex flex-col md:flex-row bg-[#050505] text-zinc-100 overflow-hidden font-mono">
 
       {/* LEFT SIDEBAR: CONTROLS */}
 
-      <div className="w-full md:w-[480px] flex-shrink-0 border-r border-zinc-800 flex flex-col h-full bg-surface/50 overflow-y-auto custom-scrollbar">
+      <div className="w-full md:w-[480px] shrink-0 border-r border-zinc-800 flex flex-col h-full bg-[#0A0A0A] overflow-y-auto custom-scrollbar relative z-10">
 
-
+        {/* Industrial Detail Lines */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-zinc-700/50 to-transparent z-20"></div>
 
         {/* Task Selector Header */}
 
-        <div className="p-6 border-b border-zinc-800 relative z-30">
+        <div className="p-5 border-b border-zinc-800 relative z-30 bg-[#0A0A0A]">
 
-          <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 block">Generation Model</label>
+          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-indigo-500 rounded-sm"></span>
+            Generation Model_ID
+          </label>
 
           <div className="relative">
 
@@ -206,29 +210,29 @@ const ImageStudio: React.FC = () => {
 
               onClick={() => setTaskSelectorOpen(!isTaskSelectorOpen)}
 
-              className="w-full flex items-center justify-between bg-zinc-900 border border-zinc-700 hover:border-zinc-500 text-white p-3 rounded-xl transition-all"
+              className="w-full flex items-center justify-between bg-black border border-zinc-800 hover:border-zinc-600 text-zinc-100 p-3 rounded-sm transition-all group"
 
             >
 
               <div className="flex items-center gap-3">
 
-                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+                <div className="p-1.5 bg-zinc-900 rounded-sm text-indigo-400 border border-zinc-800 group-hover:border-indigo-500/50 transition-colors">
 
-                  <currentTaskInfo.icon className="w-5 h-5" />
+                  <currentTaskInfo.icon className="w-4 h-4" />
 
                 </div>
 
                 <div className="text-left">
 
-                  <div className="font-medium text-sm">{currentTaskInfo.label}</div>
+                  <div className="font-bold text-xs uppercase tracking-wide">{currentTaskInfo.label}</div>
 
-                  <div className="text-[10px] text-zinc-400">{currentTaskInfo.description}</div>
+                  <div className="text-[9px] text-zinc-500 uppercase tracking-wider">{currentTaskInfo.description}</div>
 
                 </div>
 
               </div>
 
-              <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isTaskSelectorOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 text-zinc-600 transition-transform ${isTaskSelectorOpen ? 'rotate-180' : ''}`} />
 
             </button>
 
@@ -236,7 +240,7 @@ const ImageStudio: React.FC = () => {
 
             {isTaskSelectorOpen && (
 
-              <div className="absolute top-full left-0 w-full mt-2 bg-[#121214] border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="absolute top-full left-0 w-full mt-1 bg-black border border-zinc-800 rounded-sm shadow-2xl overflow-hidden z-50">
 
                 {imageTasks.map(task => (
 
@@ -252,21 +256,19 @@ const ImageStudio: React.FC = () => {
 
                     }}
 
-                    className={`w-full flex items-center gap-3 p-3 hover:bg-zinc-800/50 transition-colors text-left ${activeTask === task.id ? 'bg-zinc-800' : ''}`}
+                    className={`w-full flex items-center gap-3 p-3 hover:bg-zinc-900 transition-colors text-left border-b border-zinc-900 last:border-0 ${activeTask === task.id ? 'bg-zinc-900/50' : ''}`}
 
                   >
 
-                    <task.icon className={`w-4 h-4 ${activeTask === task.id ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                    <task.icon className={`w-3 h-3 ${activeTask === task.id ? 'text-indigo-400' : 'text-zinc-600'}`} />
 
                     <div>
 
-                      <div className={`text-sm font-medium ${activeTask === task.id ? 'text-white' : 'text-zinc-300'}`}>{task.label}</div>
-
-                      <div className="text-[10px] text-zinc-500">{task.description}</div>
+                      <div className={`text-xs font-bold uppercase tracking-wide ${activeTask === task.id ? 'text-white' : 'text-zinc-400'}`}>{task.label}</div>
 
                     </div>
 
-                    {activeTask === task.id && <Check className="w-4 h-4 text-indigo-400 ml-auto" />}
+                    {activeTask === task.id && <div className="ml-auto w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>}
 
                   </button>
 
@@ -286,19 +288,19 @@ const ImageStudio: React.FC = () => {
 
           {/* Upload Section */}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
 
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
 
-              <label className="text-sm font-medium text-white flex items-center gap-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
 
-                <Layers className="w-4 h-4 text-zinc-400" /> Reference Images
+                <Layers className="w-3 h-3" /> Input_Assets
 
               </label>
 
-              {activeTask === TaskType.IMAGE_IMG2IMG && (
+              {activeTask === TASK_TYPES.IMAGE_IMG2IMG && (
 
-                <span className="text-[10px] text-red-400 bg-red-900/20 px-2 py-0.5 rounded border border-red-900/50">Required</span>
+                <span className="text-[9px] text-red-400 bg-red-900/10 px-1.5 py-0.5 border border-red-900/30 uppercase tracking-wider">[REQUIRED]</span>
 
               )}
 
@@ -308,21 +310,30 @@ const ImageStudio: React.FC = () => {
 
               {uploadedAssets.map((asset) => (
 
-                <div key={asset.id} className="relative group aspect-square rounded-lg overflow-hidden border border-zinc-700">
+                <div key={asset.id} className="relative group aspect-square rounded-sm overflow-hidden border border-zinc-800 bg-zinc-900/30">
+                  {/* Corner marks */}
+                  <div className="absolute top-0 left-0 w-1 h-1 border-l border-t border-zinc-500 opacity-50"></div>
+                  <div className="absolute top-0 right-0 w-1 h-1 border-r border-t border-zinc-500 opacity-50"></div>
+                  <div className="absolute bottom-0 left-0 w-1 h-1 border-l border-b border-zinc-500 opacity-50"></div>
+                  <div className="absolute bottom-0 right-0 w-1 h-1 border-r border-b border-zinc-500 opacity-50"></div>
 
-                  <img src={asset.url} className="w-full h-full object-cover" />
+                  <img src={asset.url} alt="Reference asset" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
 
                   <button
 
                     onClick={() => removeAsset(asset.id)}
 
-                    className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-full text-white transition-colors opacity-0 group-hover:opacity-100"
+                    className="absolute top-0.5 right-0.5 p-1 bg-black/80 hover:bg-red-900/80 text-white transition-colors opacity-0 group-hover:opacity-100 border border-zinc-800"
 
                   >
 
-                    <X className="w-3 h-3" />
+                    <X className="w-2.5 h-2.5" />
 
                   </button>
+
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-[8px] text-zinc-500 px-1 py-0.5 font-mono truncate border-t border-zinc-800">
+                    ID: {asset.id.slice(-4)}
+                  </div>
 
                 </div>
 
@@ -352,9 +363,9 @@ const ImageStudio: React.FC = () => {
 
             {isAnalyzing && (
 
-              <div className="flex items-center gap-2 text-xs text-indigo-400 animate-pulse">
+              <div className="flex items-center gap-2 text-[10px] text-indigo-400 uppercase tracking-wider animate-pulse bg-indigo-900/10 p-2 border border-indigo-500/20">
 
-                <Sparkles className="w-3 h-3" /> Analyzing image context...
+                <Sparkles className="w-3 h-3" /> System Analysis in Progress...
 
               </div>
 
@@ -366,31 +377,38 @@ const ImageStudio: React.FC = () => {
 
           <div className="space-y-3">
 
-            <label className="text-sm font-medium text-white">Prompt</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-l-2 border-indigo-500 pl-2">Command_Prompt</label>
 
-            <textarea
+            <div className="relative group">
+              <div className="absolute inset-0 border border-zinc-700 rounded-sm pointer-events-none group-focus-within:border-indigo-500/50 transition-colors"></div>
+              {/* Tech corners */}
+              <div className="absolute top-0 left-0 w-1.5 h-1.5 border-l border-t border-zinc-600"></div>
+              <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-r border-b border-zinc-600"></div>
 
-              value={prompt}
+              <textarea
 
-              onChange={(e) => setPrompt(e.target.value)}
+                value={prompt}
 
-              placeholder={activeTask === TaskType.IMAGE_IMG2IMG ? "Describe changes or style to apply..." : "A futuristic city with neon lights..."}
+                onChange={(e) => setPrompt(e.target.value)}
 
-              className="w-full h-32 bg-zinc-900/50 border border-zinc-700 rounded-xl p-4 text-sm focus:outline-none focus:border-indigo-500 resize-none transition-all placeholder:text-zinc-600"
+                placeholder={activeTask === TASK_TYPES.IMAGE_IMG2IMG ? "// Enter modification parameters..." : "// Enter scene description..."}
 
-            />
+                className="w-full h-32 bg-black/50 border-0 rounded-sm p-3 text-xs font-mono focus:outline-none focus:ring-0 resize-none transition-all placeholder:text-zinc-700 text-zinc-300"
+
+              />
+            </div>
 
           </div>
 
           {/* Configuration Panel */}
 
-          {activeTask !== TaskType.IMAGE_3D_MODEL && (
+          {activeTask !== TASK_TYPES.IMAGE_3D_MODEL && (
 
-            <div className="space-y-6 pt-4 border-t border-zinc-800">
+            <div className="space-y-6 pt-6 border-t border-zinc-800">
 
-              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+              <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
 
-                <Settings2 className="w-3 h-3" /> Generation Settings
+                <Settings2 className="w-3 h-3" /> Output_Configuration
 
               </h3>
 
@@ -398,9 +416,9 @@ const ImageStudio: React.FC = () => {
 
               <div className="space-y-3">
 
-                <label className="text-xs text-zinc-400">Aspect Ratio</label>
+                <label className="text-[9px] text-zinc-600 uppercase tracking-widest">Frame Ratio</label>
 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1">
 
                   {['1:1', '4:3', '16:9', '9:16'].map(ratio => (
 
@@ -410,7 +428,7 @@ const ImageStudio: React.FC = () => {
 
                       onClick={() => setAspectRatio(ratio)}
 
-                      className={`py-2 text-xs rounded border transition-all ${aspectRatio === ratio ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-600'}`}
+                      className={`py-2 text-[10px] font-bold rounded-sm border transition-all uppercase tracking-wide ${aspectRatio === ratio ? 'bg-indigo-900/20 border-indigo-500 text-indigo-400' : 'bg-black border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:text-zinc-400'}`}
 
                     >
 
@@ -426,17 +444,19 @@ const ImageStudio: React.FC = () => {
 
               {/* Group Mode Toggle */}
 
-              <div className="flex items-center justify-between p-3 bg-zinc-900/50 rounded-xl border border-zinc-800">
+              <div className="flex items-center justify-between p-3 bg-black border border-zinc-800 rounded-sm">
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
 
-                  <Grid className={`w-4 h-4 ${groupMode ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                  <div className={`p-1.5 rounded-sm border ${groupMode ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-400' : 'border-zinc-800 bg-zinc-900 text-zinc-600'}`}>
+                    <Grid className="w-3.5 h-3.5" />
+                  </div>
 
                   <div>
 
-                    <div className="text-sm font-medium text-zinc-200">Group Mode</div>
+                    <div className="text-[10px] font-bold text-zinc-300 uppercase tracking-wide">Batch_Processing</div>
 
-                    <div className="text-[10px] text-zinc-500">Generate batches of variations</div>
+                    <div className="text-[9px] text-zinc-600 uppercase tracking-wider">Generate Variations</div>
 
                   </div>
 
@@ -446,11 +466,11 @@ const ImageStudio: React.FC = () => {
 
                   onClick={() => setGroupMode(!groupMode)}
 
-                  className={`w-10 h-5 rounded-full relative transition-colors ${groupMode ? 'bg-indigo-600' : 'bg-zinc-700'}`}
+                  className={`w-8 h-4 rounded-sm relative transition-colors border ${groupMode ? 'bg-indigo-900/30 border-indigo-500' : 'bg-zinc-900 border-zinc-700'}`}
 
                 >
 
-                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${groupMode ? 'left-6' : 'left-1'}`}></div>
+                  <div className={`absolute top-0.5 bottom-0.5 w-3 bg-current rounded-xs transition-all ${groupMode ? 'right-0.5 text-indigo-400' : 'left-0.5 text-zinc-500'}`}></div>
 
                 </button>
 
@@ -458,43 +478,43 @@ const ImageStudio: React.FC = () => {
 
               {/* Sliders */}
 
-              <div className="space-y-4">
+              <div className="space-y-5">
 
-                <div className="flex justify-between text-xs">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[9px] uppercase tracking-widest">
 
-                  <span className="text-zinc-400">{groupMode ? 'Batch Count' : 'Image Count'}</span>
+                    <span className="text-zinc-500">{groupMode ? 'Batch_Count' : 'Output_Count'}</span>
 
-                  <span className="text-white font-mono">{count}</span>
+                    <span className="text-indigo-400 font-bold">[{count.toString().padStart(2, '0')}]</span>
 
+                  </div>
+
+                  <input
+
+                    type="range"
+
+                    min="1"
+
+                    max={groupMode ? 50 : 50}
+
+                    value={count}
+
+                    onChange={(e) => setCount(Number(e.target.value))}
+
+                    className="w-full h-1 bg-zinc-800 rounded-none appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-black"
+
+                  />
                 </div>
-
-                <input
-
-                  type="range"
-
-                  min="1"
-
-                  max={groupMode ? 50 : 50}
-
-                  value={count}
-
-                  onChange={(e) => setCount(Number(e.target.value))}
-
-                  className="w-full accent-indigo-500 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
-
-                />
-
-
 
                 {groupMode && (
 
-                  <div className="animate-in fade-in slide-in-from-top-2 space-y-4 pt-2">
+                  <div className="animate-in fade-in slide-in-from-top-2 space-y-2 pt-2 border-t border-zinc-800/50">
 
-                    <div className="flex justify-between text-xs">
+                    <div className="flex justify-between text-[9px] uppercase tracking-widest">
 
-                      <span className="text-zinc-400">Max Images per Batch</span>
+                      <span className="text-zinc-500">Max_Per_Batch</span>
 
-                      <span className="text-white font-mono">{maxPerBatch || 'AI Decides (Max 15)'}</span>
+                      <span className="text-indigo-400 font-bold">{maxPerBatch ? `[${maxPerBatch.toString().padStart(2, '0')}]` : '[AUTO]'}</span>
 
                     </div>
 
@@ -512,7 +532,7 @@ const ImageStudio: React.FC = () => {
 
                       onChange={(e) => setMaxPerBatch(Number(e.target.value) === 0 ? undefined : Number(e.target.value))}
 
-                      className="w-full accent-indigo-500 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+                      className="w-full h-1 bg-zinc-800 rounded-none appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-indigo-500 [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-black"
 
                     />
 
@@ -528,15 +548,15 @@ const ImageStudio: React.FC = () => {
 
 
 
-          {activeTask === TaskType.IMAGE_3D_MODEL && (
+          {activeTask === TASK_TYPES.IMAGE_3D_MODEL && (
 
-            <div className="p-4 bg-indigo-900/10 border border-indigo-500/20 rounded-xl text-center">
+            <div className="p-4 bg-zinc-900/30 border border-dashed border-zinc-700 rounded-sm text-center">
 
-              <Box className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
+              <Box className="w-6 h-6 text-indigo-500 mx-auto mb-2 opacity-50" />
 
-              <h4 className="text-sm font-medium text-white">3D Model Preview</h4>
+              <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-widest">3D Mesh Preview</h4>
 
-              <p className="text-xs text-zinc-400 mt-1">This model generates .obj files based on your prompt.</p>
+              <p className="text-[9px] text-zinc-600 mt-1 font-mono uppercase">Generates .obj geometry from prompt</p>
 
             </div>
 
@@ -546,7 +566,7 @@ const ImageStudio: React.FC = () => {
 
         {/* Footer Actions */}
 
-        <div className="p-6 border-t border-zinc-800 bg-surface z-20 sticky bottom-0">
+        <div className="p-5 border-t border-zinc-800 bg-[#0A0A0A] z-20 sticky bottom-0">
 
           <button
 
@@ -554,13 +574,13 @@ const ImageStudio: React.FC = () => {
 
             disabled={isGenerating}
 
-            className="w-full py-4 bg-white text-black rounded-xl font-bold hover:bg-zinc-200 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            className="w-full py-3 bg-zinc-100 text-black rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-white disabled:opacity-50 transition-all flex items-center justify-center gap-2 border border-transparent hover:border-indigo-500 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] group"
 
           >
 
-            {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wand2 className="w-5 h-5" />}
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4 group-hover:text-indigo-600 transition-colors" />}
 
-            {isGenerating ? 'Generating...' : 'Create'}
+            {isGenerating ? 'Processing...' : 'Execute_Generation'}
 
           </button>
 
@@ -570,11 +590,11 @@ const ImageStudio: React.FC = () => {
 
             <div className="group relative">
 
-              <div className="flex items-center gap-1.5 text-xs text-zinc-500 cursor-help hover:text-zinc-300 transition-colors">
+              <div className="flex items-center gap-2 text-[9px] text-zinc-600 cursor-help hover:text-zinc-400 transition-colors font-mono uppercase tracking-wider">
 
-                <Zap className="w-3 h-3 text-yellow-500" />
+                <Zap className="w-3 h-3 text-yellow-600" />
 
-                <span>Est. Cost: ~{estimatedCost} Credits</span>
+                <span>Cost_Est: {estimatedCost} CR</span>
 
               </div>
 
@@ -588,49 +608,58 @@ const ImageStudio: React.FC = () => {
 
       {/* RIGHT PANEL: GALLERY */}
 
-      <div className="flex-1 bg-black p-8 overflow-y-auto">
+      <div className="flex-1 bg-black p-8 overflow-y-auto relative">
+        {/* Background Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-size-[40px_40px] pointer-events-none"></div>
 
         {generatedImages.length === 0 && !isGenerating ? (
 
-          <div className="h-full flex flex-col items-center justify-center text-zinc-600 space-y-4">
+          <div className="h-full flex flex-col items-center justify-center text-zinc-700 space-y-4 relative z-10">
 
-            <div className="w-32 h-32 rounded-3xl bg-zinc-900/50 border border-zinc-800 flex items-center justify-center">
+            <div className="w-24 h-24 rounded-sm border border-zinc-800 bg-zinc-900/20 flex items-center justify-center relative">
+              <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-zinc-600"></div>
+              <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-zinc-600"></div>
+              <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-zinc-600"></div>
+              <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-zinc-600"></div>
 
-              <ImageIcon className="w-12 h-12 opacity-20" />
+              <ImageIcon className="w-8 h-8 opacity-20" />
 
             </div>
 
-            <p className="text-sm">Generated content will appear here.</p>
+            <p className="text-[10px] font-mono uppercase tracking-widest">Output_Buffer_Empty</p>
 
           </div>
 
         ) : (
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 relative z-10">
 
             {isGenerating && Array.from({ length: groupMode ? count : (count > 4 ? 4 : count) }).map((_, i) => (
 
-              <div key={`load_${i}`} className="aspect-square rounded-xl bg-zinc-900 border border-zinc-800 animate-pulse flex items-center justify-center">
-
-                <Loader2 className="w-6 h-6 text-zinc-700 animate-spin" />
-
+              <div key={`load_${i}`} className="aspect-square rounded-sm bg-zinc-900/50 border border-zinc-800 animate-pulse flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-linear-to-b from-transparent via-indigo-500/5 to-transparent -translate-y-full animate-[shimmer_2s_infinite]"></div>
+                <div className="text-[9px] font-mono text-indigo-500/50 uppercase tracking-widest">Rendering...</div>
               </div>
 
             ))}
 
             {generatedImages.map((src, i) => (
 
-              <div key={i} className="group relative aspect-square rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 hover:border-indigo-500 transition-colors">
+              <div key={i} className="group relative aspect-square rounded-sm overflow-hidden bg-black border border-zinc-800 hover:border-indigo-500 transition-all">
 
-                <img src={src} className="w-full h-full object-cover" loading="lazy" />
+                <img src={src} alt={`Generated image ${i}`} className="w-full h-full object-cover" loading="lazy" />
 
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]">
+                {/* Tech Overlay */}
+                <div className="absolute top-2 left-2 px-1 py-0.5 bg-black/70 text-[8px] font-mono text-zinc-400 border border-zinc-800 uppercase">IMG_{i.toString().padStart(3, '0')}</div>
 
-                  <button className="p-2 bg-white text-black rounded-full hover:scale-110 transition-transform">
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[1px]">
 
-                    <Download className="w-4 h-4" />
+                  <button className="p-2 bg-white text-black rounded-sm hover:scale-105 transition-transform flex items-center justify-center">
+
+                    <Download className="w-3.5 h-3.5" />
 
                   </button>
+                  <span className="text-[9px] font-mono text-white uppercase tracking-widest mt-1">Export_Asset</span>
 
                 </div>
 

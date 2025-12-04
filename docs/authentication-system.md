@@ -390,6 +390,28 @@ CREATE TYPE verification_channel AS ENUM (
 
 ## API 路由
 
+### API 响应规范
+
+所有 API 遵循统一的响应格式 `ApiResponse<T>`（定义在 `lib/api-response.ts`）：
+
+**成功响应**:
+```typescript
+{
+  success: true
+  data: T                    // 实际数据
+  message?: string           // 可选的成功消息
+}
+```
+
+**错误响应**:
+```typescript
+{
+  success: false
+  error: string              // 错误消息
+  details?: unknown          // 可选的错误详情
+}
+```
+
 ### 认证相关
 
 #### POST /api/auth/check
@@ -403,13 +425,23 @@ CREATE TYPE verification_channel AS ENUM (
 }
 ```
 
-**响应**:
+**成功响应**:
 ```json
 {
   "success": true,
-  "exists": true,
-  "needsPassword": true,
-  "needsRegistration": false
+  "data": {
+    "exists": true,
+    "needsPassword": true,
+    "needsRegistration": false
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "success": false,
+  "error": "Invalid username or email format"
 }
 ```
 
@@ -435,16 +467,26 @@ CREATE TYPE verification_channel AS ENUM (
 }
 ```
 
-**响应**:
+**成功响应**:
 ```json
 {
   "success": true,
-  "action": "login",  // or "register"
-  "user": {
-    "id": 1,
-    "username": "john_doe",
-    "email": "john@example.com"
+  "data": {
+    "action": "login",  // or "register"
+    "user": {
+      "id": 1,
+      "username": "john_doe",
+      "email": "john@example.com"
+    }
   }
+}
+```
+
+**错误响应**:
+```json
+{
+  "success": false,
+  "error": "Invalid credentials"
 }
 ```
 
@@ -476,7 +518,7 @@ GitHub OAuth 回调处理。
 
 登出用户。
 
-**响应**:
+**成功响应**:
 ```json
 {
   "success": true,
@@ -484,20 +526,31 @@ GitHub OAuth 回调处理。
 }
 ```
 
+**说明**: 登出接口无需返回 `data` 字段，只返回 `success` 和 `message`。
+
 #### GET /api/auth/me
 
 获取当前用户信息（需要认证）。
 
-**响应**:
+**成功响应**:
 ```json
 {
   "success": true,
-  "user": {
+  "data": {
     "id": 1,
     "username": "john_doe",
     "email": "john@example.com",
-    "avatar": "https://avatars.githubusercontent.com/..."
+    "avatar": "https://avatars.githubusercontent.com/...",
+    "credits": 500
   }
+}
+```
+
+**错误响应**:
+```json
+{
+  "success": false,
+  "error": "Unauthorized"
 }
 ```
 

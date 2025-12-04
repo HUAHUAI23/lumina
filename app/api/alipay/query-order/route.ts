@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { accounts, chargeOrders, transactions } from '@/db/schema'
 import { queryOrderByOutTradeNo } from '@/lib/alipay'
+import { errorResponse, HttpStatus, successResponse } from '@/lib/api-response'
 import { getCurrentSession } from '@/lib/auth/dal'
 import { logger } from '@/lib/logger'
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     // 1. 验证用户登录
     const session = await getCurrentSession()
     if (!session) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
+      return NextResponse.json(errorResponse('未登录'), { status: HttpStatus.UNAUTHORIZED })
     }
 
     // 2. 获取查询参数
@@ -32,12 +33,9 @@ export async function GET(request: NextRequest) {
     const chargeOrderId = searchParams.get('chargeOrderId')
 
     if (!outTradeNo && !chargeOrderId) {
-      return NextResponse.json(
-        {
-          error: '请提供 outTradeNo 或 chargeOrderId',
-        },
-        { status: 400 }
-      )
+      return NextResponse.json(errorResponse('请提供 outTradeNo 或 chargeOrderId'), {
+        status: HttpStatus.BAD_REQUEST,
+      })
     }
 
     // 3. 查询本地订单
@@ -52,7 +50,7 @@ export async function GET(request: NextRequest) {
       .limit(1)
 
     if (!localOrder) {
-      return NextResponse.json({ error: '订单不存在' }, { status: 404 })
+      return NextResponse.json(errorResponse('订单不存在'), { status: HttpStatus.NOT_FOUND })
     }
 
     // 4. 验证订单所属权（安全检查）
@@ -71,22 +69,21 @@ export async function GET(request: NextRequest) {
         },
         '用户尝试查询他人订单'
       )
-      return NextResponse.json({ error: '无权限查询此订单' }, { status: 403 })
+      return NextResponse.json(errorResponse('无权限查询此订单'), { status: HttpStatus.FORBIDDEN })
     }
 
     // 5. 如果本地订单已成功/失败/关闭，直接返回
     if (['success', 'failed', 'closed'].includes(localOrder.status)) {
-      return NextResponse.json({
-        success: true,
-        data: {
+      return NextResponse.json(
+        successResponse({
           chargeOrderId: localOrder.id,
           outTradeNo: localOrder.outTradeNo,
           status: localOrder.status,
           amount: localOrder.amount,
           paidAt: localOrder.paidAt,
           createdAt: localOrder.createdAt,
-        },
-      })
+        })
+      )
     }
 
     // 6. 订单处于 pending 状态，查询支付宝平台
@@ -103,17 +100,16 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error(error, '查询支付宝订单失败')
       // 查询失败不影响返回本地状态
-      return NextResponse.json({
-        success: true,
-        data: {
+      return NextResponse.json(
+        successResponse({
           chargeOrderId: localOrder.id,
           outTradeNo: localOrder.outTradeNo,
           status: localOrder.status,
           amount: localOrder.amount,
           createdAt: localOrder.createdAt,
           alipayQueryFailed: true,
-        },
-      })
+        })
+      )
     }
 
     // 7. 如果支付宝显示已支付，但本地未更新，执行原子更新（兜底逻辑）
@@ -248,9 +244,8 @@ export async function GET(request: NextRequest) {
         .where(eq(chargeOrders.id, localOrder.id))
         .limit(1)
 
-      return NextResponse.json({
-        success: true,
-        data: {
+      return NextResponse.json(
+        successResponse({
           chargeOrderId: updatedOrder.id,
           outTradeNo: updatedOrder.outTradeNo,
           status: updatedOrder.status,
@@ -261,14 +256,13 @@ export async function GET(request: NextRequest) {
             trade_status: alipayOrder.trade_status,
             trade_no: alipayOrder.trade_no,
           },
-        },
-      })
+        })
+      )
     }
 
     // 8. 返回当前状态
-    return NextResponse.json({
-      success: true,
-      data: {
+    return NextResponse.json(
+      successResponse({
         chargeOrderId: localOrder.id,
         outTradeNo: localOrder.outTradeNo,
         status: localOrder.status,
@@ -280,16 +274,13 @@ export async function GET(request: NextRequest) {
           trade_no: alipayOrder.trade_no,
           buyer_logon_id: alipayOrder.buyer_logon_id,
         },
-      },
-    })
+      })
+    )
   } catch (error) {
     logger.error(error, '查询订单失败')
 
-    return NextResponse.json(
-      {
-        error: '查询订单失败，请稍后重试',
-      },
-      { status: 500 }
-    )
+    return NextResponse.json(errorResponse('查询订单失败，请稍后重试'), {
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+    })
   }
 }

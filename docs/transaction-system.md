@@ -142,13 +142,24 @@ tasks {
 // 请求
 { amount: 100 } // 单位：元
 
-// 流程
-1. 验证用户登录
-2. 验证金额范围（从 payment_configs 获取）
-3. 生成唯一商户订单号 outTradeNo
-4. 调用支付宝 API 创建二维码
-5. 插入 charge_orders 表 (status=pending)
-6. 返回二维码给前端
+// 成功响应
+{
+  success: true,
+  data: {
+    chargeOrderId: 1,
+    outTradeNo: 'ALI17012345671234ABCD',
+    qrCode: 'https://qr.alipay.com/xxx',
+    amount: 100,
+    expireTime: 600,
+    expireAt: '2024-12-02T09:00:00Z'
+  }
+}
+
+// 错误响应（余额不足示例）
+{
+  success: false,
+  error: '充值金额必须在 1-100000 元之间'
+}
 
 // charge_orders 记录
 {

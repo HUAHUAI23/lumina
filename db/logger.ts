@@ -1,7 +1,8 @@
 // db/logger.ts
 import type { Logger } from 'drizzle-orm'
 
-import { logger as pinoLogger } from '../lib/logger'
+import { logger as baseLogger } from '../lib/logger'
+const pinoLogger = baseLogger.child({ module: 'db' })
 
 /**
  * Drizzle Logger 适配器

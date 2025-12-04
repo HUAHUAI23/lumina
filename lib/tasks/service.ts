@@ -5,32 +5,36 @@
 import { and, count, desc, eq } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { taskLogs, taskResources, tasks } from '@/db/schema'
-import { getOutputPath, uploadFromUrl } from '@/lib/tos'
+import { taskResources, tasks } from '@/db/schema'
 
-import { calculateEstimatedCost, chargeForTask, refundTask } from './billing'
+import { logTaskCancelled, logTaskCreated } from './utils/task-logger'
+import {
+  calculateImageEstimatedCost,
+  calculateVideoEstimatedCost,
+  chargeForTask,
+  refundTask,
+} from './billing'
 import { TaskNotFoundError } from './errors'
-import type {
-  CreateTaskParams,
-  ListTasksParams,
-  TaskOutputResource,
-  TaskStatusType,
-  TaskUpdateParams,
-  TaskWithResources,
-} from './types'
-import { TASK_TYPE_TO_CATEGORY, TASK_TYPE_TO_MODE, TaskStatus } from './types'
+import type { CreateTaskParams } from './types'
+import { TASK_TYPE_TO_CATEGORY, TASK_TYPE_TO_MODE, TaskCategory, TaskStatus } from './types'
 
 /**
- * 创建任务
+ * 创建任务 (预扣费)
  */
 async function create(params: CreateTaskParams) {
   const { accountId, name, type, config, inputs, estimatedDuration, estimatedCount } = params
 
   const category = TASK_TYPE_TO_CATEGORY[type]
   const mode = TASK_TYPE_TO_MODE[type]
-
-  // 计算预估费用
-  const { cost, pricingId } = await calculateEstimatedCost(type, estimatedDuration, estimatedCount)
+  // 计算预估费用和用量
+  const { cost, estimatedUsage, pricing } =
+    category === TaskCategory.VIDEO
+      ? await calculateVideoEstimatedCost(type, estimatedDuration, estimatedCount)
+      : category === TaskCategory.IMAGE
+      ? await calculateImageEstimatedCost(type, estimatedCount)
+      : (() => {
+          throw new Error(`不支持的任务类别: ${category}`)
+        })()
 
   return db.transaction(async (tx) => {
     // 预扣费（会检查余额）
@@ -45,9 +49,10 @@ async function create(params: CreateTaskParams) {
         mode,
         status: TaskStatus.PENDING,
         config,
-        pricingId,
-        billingType: 'per_unit',
+        pricingId: pricing.id,
+        billingType: pricing.billingType,
         estimatedCost: cost,
+        estimatedUsage: estimatedUsage.toString(),
       })
       .returning()
 
@@ -68,86 +73,33 @@ async function create(params: CreateTaskParams) {
     }
 
     // 记录日志
-    await tx.insert(taskLogs).values({
-      taskId: task.id,
-      level: 'info',
-      message: '任务创建成功',
-      data: { estimatedCost: cost },
-    })
+    await logTaskCreated(task.id, cost)
 
     return task
   })
 }
 
 /**
- * 获取任务详情
- */
-async function get(taskId: number): Promise<TaskWithResources | null> {
-  const task = await db.query.tasks.findFirst({
-    where: eq(tasks.id, taskId),
-  })
-
-  if (!task) return null
-
-  const resources = await db.query.taskResources.findMany({
-    where: eq(taskResources.taskId, taskId),
-  })
-
-  return {
-    task,
-    inputs: resources.filter((r) => r.isInput),
-    outputs: resources.filter((r) => !r.isInput),
-  }
-}
-
-/**
- * 获取任务列表
- */
-async function list(accountId: number, params: ListTasksParams = {}) {
-  const { status, type, limit = 20, offset = 0 } = params
-
-  const conditions = [eq(tasks.accountId, accountId)]
-
-  if (status) {
-    conditions.push(eq(tasks.status, status))
-  }
-
-  if (type) {
-    conditions.push(eq(tasks.type, type))
-  }
-
-  const where = and(...conditions)
-
-  const [taskList, [{ total }]] = await Promise.all([
-    db.query.tasks.findMany({
-      where,
-      orderBy: [desc(tasks.createdAt)],
-      limit,
-      offset,
-    }),
-    db.select({ total: count() }).from(tasks).where(where),
-  ])
-
-  return { tasks: taskList, total }
-}
-
-/**
  * 取消任务
+ * 使用事务 + FOR UPDATE 防止竞态条件
  */
 async function cancel(taskId: number): Promise<void> {
-  const task = await db.query.tasks.findFirst({
-    where: eq(tasks.id, taskId),
-  })
+  const task = await db.transaction(async (tx) => {
+    // 使用 FOR UPDATE 锁定任务行，确保状态检查和更新原子性
+    const [lockedTask] = await tx
+      .select()
+      .from(tasks)
+      .where(eq(tasks.id, taskId))
+      .for('update')
 
-  if (!task) {
-    throw new TaskNotFoundError(taskId)
-  }
+    if (!lockedTask) {
+      throw new TaskNotFoundError(taskId)
+    }
 
-  if (task.status !== TaskStatus.PENDING) {
-    throw new Error(`只能取消待处理状态的任务，当前状态: ${task.status}`)
-  }
+    if (lockedTask.status !== TaskStatus.PENDING) {
+      throw new Error(`只能取消待处理状态的任务，当前状态: ${lockedTask.status}`)
+    }
 
-  await db.transaction(async (tx) => {
     await tx
       .update(tasks)
       .set({
@@ -156,92 +108,17 @@ async function cancel(taskId: number): Promise<void> {
       })
       .where(eq(tasks.id, taskId))
 
-    await tx.insert(taskLogs).values({
-      taskId,
-      level: 'info',
-      message: '任务已取消',
-    })
+    return lockedTask
   })
+
+  // 记录日志
+  await logTaskCancelled(taskId)
 
   // 退款
   await refundTask(task)
 }
 
-/**
- * 更新任务状态
- */
-async function updateStatus(
-  taskId: number,
-  status: TaskStatusType,
-  extra?: TaskUpdateParams
-): Promise<void> {
-  await db
-    .update(tasks)
-    .set({ status, ...extra })
-    .where(eq(tasks.id, taskId))
-}
-
-/**
- * 记录任务日志
- */
-async function log(
-  taskId: number,
-  level: 'info' | 'warn' | 'error',
-  message: string,
-  data?: Record<string, unknown>
-): Promise<void> {
-  await db.insert(taskLogs).values({ taskId, level, message, data })
-}
-
-/**
- * 添加输出资源（下载外部URL并上传到TOS）
- */
-async function addOutputResource(
-  taskId: number,
-  accountId: number,
-  taskType: string,
-  outputs: TaskOutputResource[]
-): Promise<TaskOutputResource[]> {
-  if (outputs.length === 0) return []
-
-  // 下载并上传到 TOS
-  const uploadedOutputs: TaskOutputResource[] = []
-
-  for (let i = 0; i < outputs.length; i++) {
-    const output = outputs[i]
-    const filename = `output_${i}_${Date.now()}.${output.type === 'video' ? 'mp4' : 'jpg'}`
-    const tosKey = getOutputPath(accountId.toString(), taskType, taskId.toString(), filename)
-
-    // 从外部 URL 下载并上传到 TOS
-    const tosUrl = await uploadFromUrl(tosKey, output.url)
-
-    uploadedOutputs.push({
-      type: output.type,
-      url: tosUrl,
-      metadata: output.metadata,
-    })
-  }
-
-  // 保存到数据库
-  await db.insert(taskResources).values(
-    uploadedOutputs.map((output) => ({
-      taskId,
-      resourceType: output.type,
-      isInput: false,
-      url: output.url,
-      metadata: output.metadata || {},
-    }))
-  )
-
-  return uploadedOutputs
-}
-
 export const taskService = {
   create,
-  get,
-  list,
   cancel,
-  updateStatus,
-  log,
-  addOutputResource,
 }

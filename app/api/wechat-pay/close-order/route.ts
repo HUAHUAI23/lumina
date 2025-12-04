@@ -18,6 +18,7 @@ import { z } from 'zod'
 
 import { db } from '@/db'
 import { accounts, chargeOrders } from '@/db/schema'
+import { errorResponse, HttpStatus, successResponse } from '@/lib/api-response'
 import { getCurrentSession } from '@/lib/auth/dal'
 import { logger } from '@/lib/logger'
 import { closeOrderSchema } from '@/lib/validations/wechat-pay'
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     // 1. 验证用户登录
     const session = await getCurrentSession()
     if (!session) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
+      return NextResponse.json(errorResponse('未登录'), { status: HttpStatus.UNAUTHORIZED })
     }
 
     // 2. 验证请求参数
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (!localOrder) {
-      return NextResponse.json({ error: '订单不存在' }, { status: 404 })
+      return NextResponse.json(errorResponse('订单不存在'), { status: HttpStatus.NOT_FOUND })
     }
 
     // 4. 验证订单所属权（安全检查）
@@ -62,38 +63,33 @@ export async function POST(request: NextRequest) {
         },
         '用户尝试关闭他人订单'
       )
-      return NextResponse.json({ error: '无权限关闭此订单' }, { status: 403 })
+      return NextResponse.json(errorResponse('无权限关闭此订单'), { status: HttpStatus.FORBIDDEN })
     }
 
     // 5. 检查订单状态
     if (localOrder.status === 'closed') {
-      return NextResponse.json({
-        success: true,
-        message: '订单已关闭',
-        data: {
-          chargeOrderId: localOrder.id,
-          outTradeNo,
-          status: 'closed',
-        },
-      })
+      return NextResponse.json(
+        successResponse(
+          {
+            chargeOrderId: localOrder.id,
+            outTradeNo,
+            status: 'closed' as const,
+          },
+          '订单已关闭'
+        )
+      )
     }
 
     if (localOrder.status === 'success') {
-      return NextResponse.json(
-        {
-          error: '订单已支付成功，无法关闭',
-        },
-        { status: 400 }
-      )
+      return NextResponse.json(errorResponse('订单已支付成功，无法关闭'), {
+        status: HttpStatus.BAD_REQUEST,
+      })
     }
 
     if (localOrder.status === 'failed') {
-      return NextResponse.json(
-        {
-          error: '订单已失败，无需关闭',
-        },
-        { status: 400 }
-      )
+      return NextResponse.json(errorResponse('订单已失败，无需关闭'), {
+        status: HttpStatus.BAD_REQUEST,
+      })
     }
 
     // 6. 调用微信支付 API 关闭订单
@@ -153,33 +149,27 @@ export async function POST(request: NextRequest) {
     )
 
     // 8. 返回成功响应
-    return NextResponse.json({
-      success: true,
-      message: '订单已关闭',
-      data: {
-        chargeOrderId: updatedOrder.id,
-        outTradeNo: updatedOrder.outTradeNo,
-        status: updatedOrder.status,
-      },
-    })
+    return NextResponse.json(
+      successResponse(
+        {
+          chargeOrderId: updatedOrder.id,
+          outTradeNo: updatedOrder.outTradeNo,
+          status: updatedOrder.status,
+        },
+        '订单已关闭'
+      )
+    )
   } catch (error) {
     logger.error(error, '关闭订单失败')
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: '参数错误',
-          details: error.issues,
-        },
-        { status: 400 }
-      )
+      return NextResponse.json(errorResponse('参数错误', error.issues), {
+        status: HttpStatus.BAD_REQUEST,
+      })
     }
 
-    return NextResponse.json(
-      {
-        error: '关闭订单失败，请稍后重试',
-      },
-      { status: 500 }
-    )
+    return NextResponse.json(errorResponse('关闭订单失败，请稍后重试'), {
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+    })
   }
 }

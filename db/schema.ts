@@ -272,120 +272,6 @@ export const pricing = pgTable(
   ]
 )
 
-// ==================== 任务表 ====================
-
-export const tasks = pgTable(
-  'tasks',
-  {
-    id: serial('id').primaryKey(),
-    accountId: integer('account_id')
-      .notNull()
-      .references(() => accounts.id),
-
-    // 任务基本信息
-    name: varchar('name', { length: 255 }).notNull().default(''),
-    category: taskCategoryEnum('category').notNull(),
-    type: taskTypeEnum('type').notNull(),
-    mode: taskModeEnum('mode').notNull(),
-    status: taskStatusEnum('status').notNull().default('pending'),
-
-    // 优先级（用于调度）
-    priority: integer('priority').notNull().default(0),
-
-    // 任务配置（不同类型有不同配置，用JSONB灵活存储）
-    config: jsonb('config').$type<TaskConfig>().notNull(),
-
-    // 第三方平台任务ID（异步任务用）
-    externalTaskId: varchar('external_task_id', { length: 255 }),
-
-    // 任务结果
-    result: jsonb('result').$type<TaskResult[]>(),
-
-    // 计费相关
-    pricingId: integer('pricing_id').references(() => pricing.id),
-    billingType: billingTypeEnum('billing_type').notNull(),
-    // 预估费用（预付费的金额，单位：分）
-    estimatedCost: integer('estimated_cost').notNull().default(0),
-    // 实际费用（任务完成后结算，单位：分）
-    actualCost: integer('actual_cost'),
-    // 实际使用量（根据billingType: 张数/分钟数/token数）
-    actualUsage: numeric('actual_usage', { precision: 10, scale: 2 }),
-
-    // 重试相关
-    retryCount: integer('retry_count').notNull().default(0),
-    nextRetryAt: timestamp('next_retry_at', { withTimezone: true }),
-
-    // 时间戳
-    startedAt: timestamp('started_at', { withTimezone: true }),
-    completedAt: timestamp('completed_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow()
-      .notNull()
-      .$onUpdateFn(() => new Date()),
-  },
-  (table) => [
-    index('idx_task_account').on(table.accountId),
-    index('idx_task_status').on(table.status),
-    index('idx_task_type').on(table.type),
-    // 用于轮询待处理任务
-    index('idx_task_pending').on(table.status, table.priority, table.createdAt),
-  ]
-)
-
-// ==================== 任务资源表（输入输出资源）====================
-
-export const taskResources = pgTable(
-  'task_resources',
-  {
-    id: serial('id').primaryKey(),
-    taskId: integer('task_id')
-      .notNull()
-      .references(() => tasks.id, { onDelete: 'cascade' }),
-
-    // 资源类型
-    resourceType: resourceTypeEnum('resource_type').notNull(),
-
-    // 是输入还是输出
-    isInput: boolean('is_input').notNull(),
-
-    // 资源URL
-    url: text('url').notNull(),
-
-    // 资源元数据（宽高、时长等）
-    metadata: jsonb('metadata')
-      .$type<ResourceMetadata>()
-      .default(sql`'{}'::jsonb`),
-
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [index('idx_resource_task').on(table.taskId)]
-)
-
-// ==================== 任务日志表 ====================
-
-export const taskLogs = pgTable(
-  'task_logs',
-  {
-    id: serial('id').primaryKey(),
-    taskId: integer('task_id')
-      .notNull()
-      .references(() => tasks.id, { onDelete: 'cascade' }),
-
-    // 日志级别
-    level: varchar('level', { length: 16 }).notNull().default('info'),
-
-    // 日志消息
-    message: text('message').notNull(),
-
-    // 详细数据
-    data: jsonb('data').$type<Record<string, unknown>>(),
-
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [index('idx_log_task').on(table.taskId), index('idx_log_created').on(table.createdAt)]
-)
-
 // ==================== 支付配置表 ====================
 
 /**
@@ -587,6 +473,124 @@ export const transactions = pgTable(
   ]
 )
 
+// ==================== 任务表 ====================
+
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: serial('id').primaryKey(),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => accounts.id),
+
+    // 任务基本信息
+    name: varchar('name', { length: 255 }).notNull().default(''),
+    category: taskCategoryEnum('category').notNull(),
+    type: taskTypeEnum('type').notNull(),
+    mode: taskModeEnum('mode').notNull(),
+    status: taskStatusEnum('status').notNull().default('pending'),
+
+    // 优先级（用于调度）
+    priority: integer('priority').notNull().default(0),
+
+    // 任务配置（不同类型有不同配置，用JSONB灵活存储）
+    config: jsonb('config').$type<TaskConfig>().notNull(),
+
+    // 第三方平台任务ID（异步任务用）
+    externalTaskId: varchar('external_task_id', { length: 255 }),
+
+    // 任务结果
+    result: jsonb('result').$type<TaskResult[]>(),
+
+    // 计费相关
+    pricingId: integer('pricing_id').references(() => pricing.id),
+    billingType: billingTypeEnum('billing_type').notNull(),
+
+    // 按量时 (per_token) estimatedUsage estimatedCost 与 actualUsage actualCost 一致，预付费时这四个字段用于处理退费情况
+    // 预估使用量（根据billingType: 张数/分钟数/token数）
+    estimatedUsage: numeric('estimated_usage', { precision: 10, scale: 2 }),
+    // 预估费用（预付费的金额，单位：分）
+    estimatedCost: integer('estimated_cost').notNull().default(0),
+    // 实际费用（任务完成后结算，单位：分）
+    actualCost: integer('actual_cost'),
+    // 实际使用量（根据billingType: 张数/分钟数/token数）
+    actualUsage: numeric('actual_usage', { precision: 10, scale: 2 }),
+
+    // 重试相关
+    retryCount: integer('retry_count').notNull().default(0),
+    nextRetryAt: timestamp('next_retry_at', { withTimezone: true }),
+
+    // 时间戳
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [
+    index('idx_task_account').on(table.accountId),
+    index('idx_task_status').on(table.status),
+    index('idx_task_type').on(table.type),
+    // 用于轮询待处理任务
+    index('idx_task_pending').on(table.status, table.priority, table.createdAt),
+  ]
+)
+
+// ==================== 任务资源表（输入输出资源）====================
+
+export const taskResources = pgTable(
+  'task_resources',
+  {
+    id: serial('id').primaryKey(),
+    taskId: integer('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+
+    // 资源类型
+    resourceType: resourceTypeEnum('resource_type').notNull(),
+
+    // 是输入还是输出
+    isInput: boolean('is_input').notNull(),
+
+    // 资源URL
+    url: text('url').notNull(),
+
+    // 资源元数据（宽高、时长等）
+    metadata: jsonb('metadata')
+      .$type<ResourceMetadata>()
+      .default(sql`'{}'::jsonb`),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('idx_resource_task').on(table.taskId)]
+)
+
+// ==================== 任务日志表 ====================
+
+export const taskLogs = pgTable(
+  'task_logs',
+  {
+    id: serial('id').primaryKey(),
+    taskId: integer('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+
+    // 日志级别
+    level: varchar('level', { length: 16 }).notNull().default('info'),
+
+    // 日志消息
+    message: text('message').notNull(),
+
+    // 详细数据
+    data: jsonb('data').$type<Record<string, unknown>>(),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('idx_log_task').on(table.taskId), index('idx_log_created').on(table.createdAt)]
+)
+
 // ==================== 类型定义 ====================
 
 // -------------------- 任务配置类型 --------------------
@@ -647,22 +651,16 @@ export interface VideoMotionResult {
 export type TaskResult = VideoMotionResult
 
 // -------------------- 资源元数据类型 --------------------
-// export interface AudioMetadata {
-//   duration?: number
-//   size?: number
-//   mimeType?: string
-//   sampleRate?: number
-// }
 
-// /** 3D 模型元数据 */
-// export interface Model3DMetadata {
-//   format?: string
-//   size?: number
-//   vertices?: number
-// }
+/** 基础元数据（所有资源共有） */
+export interface BaseMetadata {
+  originalUrl?: string
+  filename?: string
+  contentType?: string
+}
 
 /** 图片元数据（动作模仿输入） */
-export interface ImageMetadata {
+export interface ImageMetadata extends BaseMetadata {
   width?: number
   height?: number
   size?: number
@@ -670,7 +668,7 @@ export interface ImageMetadata {
 }
 
 /** 视频元数据（动作模仿输入和输出） */
-export interface VideoMetadata {
+export interface VideoMetadata extends BaseMetadata {
   duration?: number
   width?: number
   height?: number

@@ -2,24 +2,29 @@
  * 任务计费服务
  */
 
-import { eq } from 'drizzle-orm'
+import { eq, InferSelectModel } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { accounts, pricing, transactions } from '@/db/schema'
+import { logger as baseLogger } from '@/lib/logger'
+
+type Pricing = InferSelectModel<typeof pricing>
 
 import { InsufficientBalanceError } from './errors'
 import type { Task, TaskTypeType } from './types'
 import { TASK_TYPE_TO_CATEGORY } from './types'
+import { BillingType, TaskCategory } from './types'
+const logger = baseLogger.child({ module: 'tasks/billing' })
 
 /**
- * 获取任务类型的价格配置
+ * 获取任务类型的价格配置 (当前只实现 BillingType.PER_UNIT 计费方式)
  */
-export async function getPricing(taskType: TaskTypeType) {
+export async function getPricing(taskType: TaskTypeType): Promise<Pricing | undefined> {
   const pricingConfig = await db.query.pricing.findFirst({
     where: eq(pricing.taskType, taskType),
   })
 
-  if (pricingConfig && pricingConfig.billingType !== 'per_unit') {
+  if (pricingConfig && pricingConfig.billingType !== BillingType.PER_UNIT) {
     throw new Error(`任务类型 ${taskType} 的计费类型不是 per_unit，当前只支持按次计费`)
   }
 
@@ -27,36 +32,65 @@ export async function getPricing(taskType: TaskTypeType) {
 }
 
 /**
- * 计算预估费用
+ * 计算视频类任务的预估费用
  * @param taskType 任务类型
  * @param estimatedDuration 预估时长（秒），视频类任务用
- * @param estimatedCount 预估数量，图片类任务用
+ * @param estimatedCount 预估数量
+ * @returns cost: 预估费用（分）, estimatedUsage: 预估用量（秒）, pricing: 价格配置
  */
-export async function calculateEstimatedCost(
+export async function calculateVideoEstimatedCost(
   taskType: TaskTypeType,
   estimatedDuration?: number,
   estimatedCount?: number
-): Promise<{ cost: number; pricingId: number }> {
+): Promise<{ cost: number; estimatedUsage: number; pricing: Pricing }> {
+  const category = TASK_TYPE_TO_CATEGORY[taskType]
+  if (category !== TaskCategory.VIDEO) {
+    throw new Error(`任务类型 ${taskType} 不是视频类任务`)
+  }
+
   const pricingConfig = await getPricing(taskType)
 
   if (!pricingConfig) {
     throw new Error(`未找到任务类型 ${taskType} 的价格配置`)
   }
 
-  const category = TASK_TYPE_TO_CATEGORY[taskType]
-  let usage: number
+  // 单个视频的用量（秒数）
+  const singleUsage = Math.max(estimatedDuration || 0, Number(pricingConfig.minUnit))
+  // 总用量 = 单个用量 * 数量
+  const estimatedUsage = singleUsage * (estimatedCount || 1)
 
-  if (category === 'video') {
-    // 视频按秒计费
-    usage = Math.max(estimatedDuration || 0, Number(pricingConfig.minUnit))
-  } else {
-    // 图片按张计费
-    usage = Math.max(estimatedCount || 1, Number(pricingConfig.minUnit))
+  const cost = Math.ceil(estimatedUsage * pricingConfig.unitPrice)
+
+  return { cost, estimatedUsage, pricing: pricingConfig }
+}
+
+/**
+ * 计算图片类任务的预估费用
+ * @param taskType 任务类型
+ * @param estimatedCount 预估数量
+ * @returns cost: 预估费用（分）, estimatedUsage: 预估用量（张数）, pricing: 价格配置
+ */
+export async function calculateImageEstimatedCost(
+  taskType: TaskTypeType,
+  estimatedCount?: number
+): Promise<{ cost: number; estimatedUsage: number; pricing: Pricing }> {
+  const category = TASK_TYPE_TO_CATEGORY[taskType]
+  if (category !== TaskCategory.IMAGE) {
+    throw new Error(`任务类型 ${taskType} 不是图片类任务`)
   }
 
-  const cost = Math.ceil(usage * pricingConfig.unitPrice)
+  const pricingConfig = await getPricing(taskType)
 
-  return { cost, pricingId: pricingConfig.id }
+  if (!pricingConfig) {
+    throw new Error(`未找到任务类型 ${taskType} 的价格配置`)
+  }
+
+  // 图片按张计费
+  const estimatedUsage = Math.max(estimatedCount || 1, Number(pricingConfig.minUnit))
+
+  const cost = Math.ceil(estimatedUsage * pricingConfig.unitPrice)
+
+  return { cost, estimatedUsage, pricing: pricingConfig }
 }
 
 /**
@@ -111,7 +145,7 @@ export async function settleTask(task: Task, actualCost: number): Promise<void> 
   if (difference <= 0) {
     // 刚好或少收了，平台承担，不补扣
     if (difference < 0) {
-      console.warn(`[Billing] 任务 ${task.id} 少收费 ${Math.abs(difference)} 分，平台承担`)
+      logger.warn(`[Billing] 任务 ${task.id} 少收费 ${Math.abs(difference)} 分，平台承担`)
     }
     return
   }

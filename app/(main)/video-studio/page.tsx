@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Activity, Check, ChevronDown, Film, Image as ImageIcon, Info, Loader2, Mic, Monitor, MonitorPlay, Music, PlayCircle, Plus, Settings2, Smartphone, Sparkles, Square, Tv, Upload, Wand2, X } from 'lucide-react'
+import { Activity, Check, ChevronDown, Film, Image as ImageIcon, Info, Loader2, Mic, Monitor, MonitorPlay, PlayCircle, Settings2, Smartphone, Sparkles, Square, Tv, Wand2, X } from 'lucide-react'
 
 import FileUpload from '../../../components/FileUpload'
 import { analyzeVideoContent, generateStyleImages, generateVideo } from '../../../services/geminiService'
@@ -95,7 +95,7 @@ const VideoStudio: React.FC = () => {
 
 
 
-    } catch (error) {
+    } catch (_error) {
 
       alert("Analysis failed. Please ensure API Key is set.")
 
@@ -266,21 +266,25 @@ const VideoStudio: React.FC = () => {
 
   return (
 
-    <div className="h-full flex flex-col md:flex-row bg-background text-zinc-200 overflow-hidden fade-enter">
+    <div className="h-full flex flex-col md:flex-row bg-[#050505] text-zinc-200 overflow-hidden fade-enter font-mono">
 
 
 
       {/* Left Panel: Controls */}
 
-      <div className="w-full md:w-[500px] flex-shrink-0 border-r border-border flex flex-col h-full overflow-y-auto custom-scrollbar bg-surface/80 backdrop-blur-sm">
+      <div className="w-full md:w-[500px] shrink-0 border-r border-zinc-800 flex flex-col h-full overflow-y-auto custom-scrollbar bg-[#0A0A0A] relative z-20">
 
-
+        {/* Top Industrial Detail */}
+        <div className="h-1 w-full bg-linear-to-r from-zinc-800 via-zinc-700 to-zinc-800"></div>
 
         {/* --- Task Selector (Dropdown Style) --- */}
 
-        <div className="p-6 border-b border-border relative z-30">
+        <div className="p-6 border-b border-zinc-800 relative z-30">
 
-          <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 block">Task Type</label>
+          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-indigo-500 rounded-sm"></span>
+            Operation_Mode
+          </label>
 
           <div className="relative">
 
@@ -288,29 +292,29 @@ const VideoStudio: React.FC = () => {
 
               onClick={() => setTaskSelectorOpen(!isTaskSelectorOpen)}
 
-              className="w-full flex items-center justify-between bg-zinc-900/50 border border-zinc-700/50 hover:border-indigo-500/50 hover:bg-zinc-800/50 text-white p-3.5 rounded-xl transition-all shadow-sm"
+              className="w-full flex items-center justify-between bg-black border border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/30 text-white p-3.5 rounded-sm transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
 
             >
 
               <div className="flex items-center gap-3">
 
-                <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400 border border-indigo-500/20">
+                <div className="p-1.5 bg-zinc-900 rounded-sm text-indigo-400 border border-zinc-700">
 
-                  <currentTaskInfo.icon className="w-5 h-5" />
+                  <currentTaskInfo.icon className="w-4 h-4" />
 
                 </div>
 
                 <div className="text-left">
 
-                  <div className="font-medium text-sm text-white">{currentTaskInfo.label}</div>
+                  <div className="font-bold text-xs uppercase tracking-wide text-white">{currentTaskInfo.label}</div>
 
-                  <div className="text-[11px] text-zinc-400">{currentTaskInfo.description}</div>
+                  <div className="text-[9px] text-zinc-500 uppercase tracking-wider">{currentTaskInfo.description}</div>
 
                 </div>
 
               </div>
 
-              <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isTaskSelectorOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform ${isTaskSelectorOpen ? 'rotate-180' : ''}`} />
 
             </button>
 
@@ -318,7 +322,7 @@ const VideoStudio: React.FC = () => {
 
             {isTaskSelectorOpen && (
 
-              <div className="absolute top-full left-0 w-full mt-2 bg-[#0E0E12] border border-border rounded-xl shadow-2xl shadow-black/50 overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
+              <div className="absolute top-full left-0 w-full mt-1 bg-[#050505] border border-zinc-800 rounded-sm shadow-2xl z-50">
 
                 {videoTasks.map(task => (
 
@@ -336,21 +340,19 @@ const VideoStudio: React.FC = () => {
 
                     }}
 
-                    className={`w-full flex items-center gap-3 p-3.5 hover:bg-white/5 transition-colors text-left ${activeTask === task.id ? 'bg-white/5' : ''}`}
+                    className={`w-full flex items-center gap-3 p-3.5 hover:bg-zinc-900 transition-colors text-left border-b border-zinc-900 last:border-0 ${activeTask === task.id ? 'bg-zinc-900/50' : ''}`}
 
                   >
 
-                    <task.icon className={`w-4 h-4 ${activeTask === task.id ? 'text-indigo-400' : 'text-zinc-500'}`} />
+                    <task.icon className={`w-4 h-4 ${activeTask === task.id ? 'text-indigo-400' : 'text-zinc-600'}`} />
 
                     <div>
 
-                      <div className={`text-sm font-medium ${activeTask === task.id ? 'text-white' : 'text-zinc-300'}`}>{task.label}</div>
-
-                      <div className="text-[10px] text-zinc-500">{task.description}</div>
+                      <div className={`text-xs font-bold uppercase tracking-wide ${activeTask === task.id ? 'text-white' : 'text-zinc-400'}`}>{task.label}</div>
 
                     </div>
 
-                    {activeTask === task.id && <Check className="w-4 h-4 text-indigo-400 ml-auto" />}
+                    {activeTask === task.id && <div className="ml-auto w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>}
 
                   </button>
 
@@ -372,13 +374,13 @@ const VideoStudio: React.FC = () => {
 
           <div className="space-y-3">
 
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
 
-              <label className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+              <label className="text-[10px] font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest">
 
-                <Film className="w-4 h-4 text-zinc-400" />
+                <Film className="w-3 h-3" />
 
-                {activeTask === TaskType.VIDEO_LIPSYNC ? 'Face Video' : 'Source Video'}
+                {activeTask === TaskType.VIDEO_LIPSYNC ? 'Face_Input' : 'Source_Input'}
 
               </label>
 
@@ -390,13 +392,13 @@ const VideoStudio: React.FC = () => {
 
                   disabled={isAnalyzing}
 
-                  className="text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-colors px-2 py-1 rounded hover:bg-indigo-500/10"
+                  className="text-[9px] font-mono uppercase tracking-wider flex items-center gap-1 text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-colors px-2 py-1 rounded-sm border border-indigo-500/20 hover:bg-indigo-500/10"
 
                 >
 
                   {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
 
-                  Auto-analyze
+                  Analyze_Content
 
                 </button>
 
@@ -426,11 +428,14 @@ const VideoStudio: React.FC = () => {
 
             {analysisResult && (
 
-              <div className="p-4 bg-indigo-900/10 border border-indigo-500/20 rounded-xl animate-in fade-in slide-in-from-top-2">
+              <div className="p-3 bg-zinc-900/30 border border-zinc-800 rounded-sm animate-in fade-in slide-in-from-top-2">
 
                 <div className="flex justify-between items-center mb-2">
 
-                  <span className="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Analysis Complete</span>
+                  <span className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                    <div className="w-1 h-1 bg-indigo-500 rounded-full animate-pulse"></div>
+                    Analysis_Complete
+                  </span>
 
                 </div>
 
@@ -438,15 +443,15 @@ const VideoStudio: React.FC = () => {
 
                   {analysisResult.extractedFrames.map((frame, i) => (
 
-                    <img key={i} src={frame} alt={`Frame ${i}`} className="w-16 h-16 object-cover rounded-lg border border-indigo-500/20 shadow-sm" />
+                    <img key={i} src={frame} alt={`Frame ${i}`} className="w-12 h-12 object-cover rounded-sm border border-zinc-700 opacity-80 hover:opacity-100 transition-opacity" />
 
                   ))}
 
                 </div>
 
-                <p className="text-xs text-zinc-300 bg-black/20 p-3 rounded-lg border border-white/5 line-clamp-3">
+                <p className="text-[10px] text-zinc-400 bg-black/40 p-2 rounded-sm border border-zinc-800 line-clamp-3 font-mono">
 
-                  {analysisResult.description}
+                  &gt; {analysisResult.description}
 
                 </p>
 
@@ -462,29 +467,29 @@ const VideoStudio: React.FC = () => {
 
             <div className="space-y-3">
 
-              <label className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+              <label className="text-[10px] font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest border-b border-zinc-800 pb-2">
 
-                <ImageIcon className="w-4 h-4 text-zinc-400" /> Visual Context
+                <ImageIcon className="w-3 h-3" /> Visual_Reference
 
-                <span className="text-zinc-500 text-xs font-normal ml-auto px-2 py-0.5 bg-zinc-900 rounded border border-border">{referenceAssets.length}/3 Selected</span>
+                <span className="text-zinc-600 text-[9px] font-normal ml-auto font-mono">[{referenceAssets.length}/3]</span>
 
               </label>
 
-              <div className="bg-zinc-900/30 rounded-xl border border-border overflow-hidden">
+              <div className="bg-black border border-zinc-800 rounded-sm overflow-hidden">
 
                 {/* Tabs */}
 
-                <div className="flex border-b border-border">
+                <div className="flex border-b border-zinc-800">
 
                   <button
 
                     onClick={() => setRefTab('upload')}
 
-                    className={`flex-1 py-2.5 text-xs font-medium transition-colors ${refTab === 'upload' ? 'bg-white/5 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    className={`flex-1 py-2 text-[9px] font-bold uppercase tracking-widest transition-colors ${refTab === 'upload' ? 'bg-zinc-900 text-white border-b-2 border-indigo-500' : 'text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/50'}`}
 
                   >
 
-                    Upload Assets
+                    Manual_Upload
 
                   </button>
 
@@ -492,11 +497,11 @@ const VideoStudio: React.FC = () => {
 
                     onClick={() => setRefTab('generate')}
 
-                    className={`flex-1 py-2.5 text-xs font-medium transition-colors ${refTab === 'generate' ? 'bg-white/5 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    className={`flex-1 py-2 text-[9px] font-bold uppercase tracking-widest transition-colors ${refTab === 'generate' ? 'bg-zinc-900 text-white border-b-2 border-indigo-500' : 'text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900/50'}`}
 
                   >
 
-                    AI Generator
+                    AI_Generator
 
                   </button>
 
@@ -504,11 +509,11 @@ const VideoStudio: React.FC = () => {
 
                 {/* Tab Content */}
 
-                <div className="p-4 bg-surfaceLight/10 min-h-[200px]">
+                <div className="p-3 min-h-[150px]">
 
                   {refTab === 'upload' ? (
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
 
                       {referenceAssets.length < 3 && (
 
@@ -518,7 +523,7 @@ const VideoStudio: React.FC = () => {
 
                           accept="image/*"
 
-                          label="Upload Reference Image"
+                          label="Add Reference Asset"
 
                           selectedFile={null}
 
@@ -536,15 +541,15 @@ const VideoStudio: React.FC = () => {
 
                         {referenceAssets.filter(a => a.source === 'upload').map((asset) => (
 
-                          <div key={asset.id} className="relative group aspect-square rounded-lg overflow-hidden border border-indigo-500/30">
+                          <div key={asset.id} className="relative group aspect-square rounded-sm overflow-hidden border border-zinc-800">
 
-                            <img src={asset.url} className="w-full h-full object-cover" />
+                            <img src={asset.url} alt="Reference asset" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
 
                             <button
 
                               onClick={() => toggleReferenceAsset(asset)}
 
-                              className="absolute top-1 right-1 p-1 bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                              className="absolute top-0 right-0 p-1 bg-black/80 hover:bg-red-900 text-white opacity-0 group-hover:opacity-100 transition-all border-l border-b border-zinc-800"
 
                             >
 
@@ -562,7 +567,7 @@ const VideoStudio: React.FC = () => {
 
                   ) : (
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
 
                       <div className="flex gap-2">
 
@@ -574,9 +579,9 @@ const VideoStudio: React.FC = () => {
 
                           onChange={(e) => setImageGenPrompt(e.target.value)}
 
-                          placeholder="Describe character or scene style..."
+                          placeholder="// Concept description..."
 
-                          className="flex-1 bg-black/30 border border-zinc-700/50 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 text-white placeholder:text-zinc-600"
+                          className="flex-1 bg-zinc-900 border border-zinc-700 rounded-sm px-3 py-2 text-[10px] font-mono focus:outline-none focus:border-indigo-500/50 text-white placeholder:text-zinc-600"
 
                         />
 
@@ -586,11 +591,11 @@ const VideoStudio: React.FC = () => {
 
                           disabled={isGeneratingImages || !imageGenPrompt}
 
-                          className="px-3 bg-indigo-600/80 hover:bg-indigo-600 rounded-lg text-white disabled:opacity-50 transition-colors"
+                          className="px-3 bg-indigo-600/80 hover:bg-indigo-600 rounded-sm text-white disabled:opacity-50 transition-colors border border-transparent hover:border-indigo-400"
 
                         >
 
-                          {isGeneratingImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                          {isGeneratingImages ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
 
                         </button>
 
@@ -610,17 +615,17 @@ const VideoStudio: React.FC = () => {
 
                               onClick={() => toggleReferenceAsset(asset)}
 
-                              className={`relative cursor-pointer group aspect-square rounded-lg overflow-hidden border-2 transition-all ${isSelected ? 'border-indigo-500' : 'border-transparent hover:border-zinc-700'}`}
+                              className={`relative cursor-pointer group aspect-square rounded-sm overflow-hidden border transition-all ${isSelected ? 'border-indigo-500 opacity-100' : 'border-zinc-800 opacity-60 hover:opacity-100 hover:border-zinc-600'}`}
 
                             >
 
-                              <img src={asset.url} className="w-full h-full object-cover" />
+                              <img src={asset.url} alt="Style candidate" className="w-full h-full object-cover" />
 
                               {isSelected && (
 
-                                <div className="absolute top-1 right-1 bg-indigo-500 text-white rounded-full p-0.5 shadow-sm">
+                                <div className="absolute top-0 right-0 bg-indigo-500 text-white p-0.5">
 
-                                  <Check className="w-3 h-3" />
+                                  <Check className="w-2.5 h-2.5" />
 
                                 </div>
 
@@ -650,11 +655,11 @@ const VideoStudio: React.FC = () => {
 
           <div className="space-y-3">
 
-            <label className="text-sm font-medium text-zinc-200 flex justify-between">
+            <label className="text-[10px] font-bold text-zinc-400 flex justify-between uppercase tracking-widest border-b border-zinc-800 pb-2">
 
-              Audio Track
+              Audio_Track
 
-              {activeTask === TaskType.VIDEO_LIPSYNC && <span className="text-[10px] text-red-400 bg-red-900/20 px-2 py-0.5 rounded">* Required for LipSync</span>}
+              {activeTask === TaskType.VIDEO_LIPSYNC && <span className="text-[9px] text-red-400 px-1 py-0.5 border border-red-900/30 bg-red-900/10 rounded-sm">[REQUIRED]</span>}
 
             </label>
 
@@ -680,19 +685,25 @@ const VideoStudio: React.FC = () => {
 
           <div className="space-y-3">
 
-            <label className="text-sm font-medium text-zinc-200">Video Prompt</label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-l-2 border-indigo-500 pl-2">Scene_Prompt</label>
 
-            <textarea
+            <div className="relative group">
+              {/* Tech corners */}
+              <div className="absolute top-0 left-0 w-1.5 h-1.5 border-l border-t border-zinc-600"></div>
+              <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-r border-b border-zinc-600"></div>
 
-              value={prompt}
+              <textarea
 
-              onChange={(e) => setPrompt(e.target.value)}
+                value={prompt}
 
-              placeholder={activeTask === TaskType.VIDEO_LIPSYNC ? "Not used for basic lipsync..." : "Describe the action, camera movement, and final look..."}
+                onChange={(e) => setPrompt(e.target.value)}
 
-              className="w-full h-32 bg-zinc-900/30 border border-zinc-700/50 rounded-xl p-4 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all resize-none text-zinc-100 placeholder:text-zinc-600"
+                placeholder={activeTask === TaskType.VIDEO_LIPSYNC ? "// Lipsync mode active..." : "// Describe camera, action, lighting..."}
 
-            />
+                className="w-full h-24 bg-black/30 border border-zinc-800 rounded-sm p-3 text-[11px] font-mono focus:outline-none focus:border-indigo-500/50 transition-all resize-none text-zinc-300 placeholder:text-zinc-700"
+
+              />
+            </div>
 
           </div>
 
@@ -700,21 +711,21 @@ const VideoStudio: React.FC = () => {
 
           {activeTask === TaskType.VIDEO_GENERATION && (
 
-            <div className="space-y-3">
+            <div className="space-y-4 pt-4 border-t border-zinc-800">
 
               <div className="flex justify-between items-center">
 
-                <label className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+                <label className="text-[10px] font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest">
 
-                  <Settings2 className="w-4 h-4 text-zinc-400" /> Output Settings
+                  <Settings2 className="w-3 h-3" /> Render_Config
 
                 </label>
 
                 {hasReferenceAssets && (
 
-                  <span className="text-[10px] bg-indigo-900/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20 flex items-center gap-1">
+                  <span className="text-[9px] bg-indigo-900/20 text-indigo-400 px-1.5 py-0.5 rounded-sm border border-indigo-500/30 flex items-center gap-1 font-mono uppercase">
 
-                    <Info className="w-3 h-3" /> Locked by Reference Mode
+                    <Info className="w-2.5 h-2.5" /> Ref_Lock_Active
 
                   </span>
 
@@ -724,13 +735,13 @@ const VideoStudio: React.FC = () => {
 
 
 
-              <div className="space-y-3">
+              <div className="space-y-4">
 
                 <div className={`space-y-2 ${hasReferenceAssets ? 'opacity-50 pointer-events-none' : ''}`}>
 
-                  <label className="text-xs text-zinc-500">Aspect Ratio</label>
+                  <label className="text-[9px] text-zinc-600 uppercase tracking-widest">Aspect_Ratio</label>
 
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-5 gap-1">
 
                     {aspectRatios.map((ratio) => (
 
@@ -740,21 +751,21 @@ const VideoStudio: React.FC = () => {
 
                         onClick={() => setAspectRatio(ratio.id)}
 
-                        className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-200 
-
+                        className={`flex flex-col items-center justify-center p-2 rounded-sm border transition-all duration-200 
+    
                            ${aspectRatio === ratio.id
 
-                            ? 'bg-indigo-600/10 border-indigo-500/50 text-indigo-200'
+                            ? 'bg-indigo-900/20 border-indigo-500 text-indigo-300'
 
-                            : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                            : 'bg-black border-zinc-800 text-zinc-600 hover:border-zinc-700 hover:text-zinc-400'
 
                           }`}
 
                       >
 
-                        <ratio.icon className="w-4 h-4 mb-1" />
+                        <ratio.icon className="w-3.5 h-3.5 mb-1" />
 
-                        <span className="text-[10px] font-medium">{ratio.label}</span>
+                        <span className="text-[9px] font-bold">{ratio.label}</span>
 
                       </button>
 
@@ -768,15 +779,15 @@ const VideoStudio: React.FC = () => {
 
                 <div className={`space-y-2 ${hasReferenceAssets ? 'opacity-50 pointer-events-none' : ''}`}>
 
-                  <label className="text-xs text-zinc-500">Resolution</label>
+                  <label className="text-[9px] text-zinc-600 uppercase tracking-widest">Output_Res</label>
 
-                  <div className="flex bg-zinc-900/30 rounded-lg p-1 border border-zinc-800">
+                  <div className="flex bg-black rounded-sm p-1 border border-zinc-800">
 
                     <button
 
                       onClick={() => setResolution('720p')}
 
-                      className={`flex-1 py-1.5 rounded-md text-xs transition-colors ${resolution === '720p' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex-1 py-1 rounded-sm text-[10px] font-mono transition-colors ${resolution === '720p' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-400'}`}
 
                     >
 
@@ -788,7 +799,7 @@ const VideoStudio: React.FC = () => {
 
                       onClick={() => setResolution('1080p')}
 
-                      className={`flex-1 py-1.5 rounded-md text-xs transition-colors ${resolution === '1080p' ? 'bg-zinc-700 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      className={`flex-1 py-1 rounded-sm text-[10px] font-mono transition-colors ${resolution === '1080p' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-600 hover:text-zinc-400'}`}
 
                     >
 
@@ -808,7 +819,7 @@ const VideoStudio: React.FC = () => {
 
         </div>
 
-        <div className="p-6 border-t border-border bg-surface z-10">
+        <div className="p-5 border-t border-zinc-800 bg-[#0A0A0A] z-10 sticky bottom-0">
 
           <button
 
@@ -816,7 +827,7 @@ const VideoStudio: React.FC = () => {
 
             disabled={isGenerating || (activeTask === TaskType.VIDEO_GENERATION && !prompt)}
 
-            className="w-full py-4 bg-white text-black rounded-xl font-bold hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            className="w-full py-3 bg-zinc-100 text-black rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-transparent hover:border-indigo-500"
 
           >
 
@@ -824,9 +835,9 @@ const VideoStudio: React.FC = () => {
 
               <>
 
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
 
-                Processing...
+                Rendering_Sequence...
 
               </>
 
@@ -834,9 +845,9 @@ const VideoStudio: React.FC = () => {
 
               <>
 
-                <Wand2 className="w-5 h-5" />
+                <Wand2 className="w-4 h-4" />
 
-                Generate {activeTask === TaskType.VIDEO_LIPSYNC ? 'LipSync' : 'Video'}
+                Initiate {activeTask === TaskType.VIDEO_LIPSYNC ? 'LipSync' : 'Generation'}
 
               </>
 
@@ -850,47 +861,47 @@ const VideoStudio: React.FC = () => {
 
             <div className="group relative">
 
-              <div className="flex items-center gap-1.5 text-xs text-zinc-500 cursor-help hover:text-zinc-300 transition-colors">
+              <div className="flex items-center gap-2 text-[9px] text-zinc-600 cursor-help hover:text-zinc-400 transition-colors font-mono uppercase tracking-wider">
 
-                <span>Balance: 850.00</span>
+                <span>BAL: 850.00</span>
 
-                <div className="w-1 h-1 bg-zinc-600 rounded-full"></div>
+                <div className="w-0.5 h-3 bg-zinc-800"></div>
 
-                <span>Est: ~{10 + (referenceAssets.length * 2)} Credits</span>
+                <span>EST: ~{10 + (referenceAssets.length * 2)} CR</span>
 
-                <Info className="w-3 h-3" />
+                <Info className="w-3 h-3 text-zinc-700" />
 
               </div>
 
 
 
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-4 bg-surfaceLight/95 backdrop-blur-md border border-zinc-700 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform group-hover:-translate-y-1">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-black border border-zinc-700 rounded-sm shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
 
-                <div className="text-xs font-semibold text-white mb-2 pb-2 border-b border-zinc-800">Cost Breakdown</div>
+                <div className="text-[10px] font-bold text-white mb-2 pb-2 border-b border-zinc-800 uppercase tracking-widest">Cost Breakdown</div>
 
-                <div className="space-y-2">
+                <div className="space-y-1">
 
-                  <div className="flex justify-between text-[11px] text-zinc-400">
+                  <div className="flex justify-between text-[9px] text-zinc-400 font-mono">
 
-                    <span>Task Type</span>
+                    <span>TASK_TYPE</span>
 
-                    <span>{currentTaskInfo.label}</span>
+                    <span className="uppercase">{currentTaskInfo.label}</span>
 
                   </div>
 
-                  <div className="flex justify-between text-[11px] text-zinc-400">
+                  <div className="flex justify-between text-[9px] text-zinc-400 font-mono">
 
-                    <span>Base Cost</span>
+                    <span>BASE_COST</span>
 
                     <span>10.0</span>
 
                   </div>
 
-                  <div className="flex justify-between text-[11px] font-medium text-emerald-400 pt-2 border-t border-zinc-800/50 mt-1">
+                  <div className="flex justify-between text-[9px] font-bold text-emerald-500 pt-2 border-t border-zinc-800 mt-1 font-mono">
 
-                    <span>Total Estimated</span>
+                    <span>TOTAL_EST</span>
 
-                    <span>{10 + (referenceAssets.length * 2)} Credits</span>
+                    <span>{10 + (referenceAssets.length * 2)} CR</span>
 
                   </div>
 
@@ -908,17 +919,29 @@ const VideoStudio: React.FC = () => {
 
       {/* Right Panel: Preview Area */}
 
-      <div className="flex-1 bg-black flex flex-col items-center justify-center p-8 relative">
+      <div className="flex-1 bg-black flex flex-col items-center justify-center p-8 relative overflow-hidden">
+        {/* Background Grids */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-size-[60px_60px] pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] pointer-events-none"></div>
 
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900/30 to-black pointer-events-none"></div>
+        <div className="absolute top-8 left-8 text-zinc-600 font-mono text-[10px] uppercase tracking-widest flex flex-col gap-1">
+          <span>Viewer_Mode: Active</span>
+          <span>Signal: Stable</span>
+        </div>
 
-        <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none"></div>
-
-
+        <div className="absolute bottom-8 right-8 text-zinc-600 font-mono text-[10px] uppercase tracking-widest flex items-center gap-2">
+          <div className="w-2 h-2 bg-emerald-900 rounded-full animate-pulse"></div>
+          <span>Sys_Ready</span>
+        </div>
 
         {generatedVideoUrl ? (
 
-          <div className="w-full max-w-4xl aspect-video rounded-xl overflow-hidden shadow-2xl border border-zinc-800 relative z-10 animate-in zoom-in-95 duration-500">
+          <div className="w-full max-w-4xl aspect-video rounded-sm overflow-hidden shadow-2xl border border-zinc-800 relative z-10 animate-in zoom-in-95 duration-500 group">
+            {/* HUD Corners */}
+            <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-white/20 z-20"></div>
+            <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-white/20 z-20"></div>
+            <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-white/20 z-20"></div>
+            <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-white/20 z-20"></div>
 
             <video
 
@@ -934,17 +957,17 @@ const VideoStudio: React.FC = () => {
 
             />
 
-            <div className="absolute top-4 right-4 flex gap-2">
+            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-30">
 
               <button
 
                 onClick={() => setGeneratedVideoUrl(null)}
 
-                className="px-3 py-1 bg-black/60 backdrop-blur text-white text-sm rounded hover:bg-black/80 transition-colors"
+                className="px-3 py-1 bg-black/80 backdrop-blur text-white text-[10px] font-mono uppercase tracking-wider rounded-sm hover:bg-red-900/50 transition-colors border border-zinc-800"
 
               >
 
-                Close
+                Close_Viewer
 
               </button>
 
@@ -954,11 +977,11 @@ const VideoStudio: React.FC = () => {
 
                 download="lumina-generated.mp4"
 
-                className="px-3 py-1 bg-white text-black text-sm rounded hover:bg-zinc-200 font-medium transition-colors"
+                className="px-3 py-1 bg-white text-black text-[10px] font-mono uppercase tracking-wider rounded-sm hover:bg-zinc-200 font-bold transition-colors"
 
               >
 
-                Download
+                Download_MP4
 
               </a>
 
@@ -968,23 +991,26 @@ const VideoStudio: React.FC = () => {
 
         ) : (
 
-          <div className="text-center space-y-6 z-10 opacity-60 animate-in fade-in duration-1000">
+          <div className="text-center space-y-6 z-10 opacity-60 animate-in fade-in duration-1000 relative">
+            {/* Center Target Graphic */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-zinc-800 rounded-full opacity-20 pointer-events-none"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-px bg-zinc-800 opacity-20 pointer-events-none"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-[280px] bg-zinc-800 opacity-20 pointer-events-none"></div>
 
-            <div className="w-24 h-24 rounded-full bg-surfaceLight/50 border border-border flex items-center justify-center mx-auto shadow-glow">
+            <div className="w-20 h-20 rounded-full bg-zinc-900/50 border border-zinc-700 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(255,255,255,0.05)] relative z-20">
 
-              <PlayCircle className="w-10 h-10 text-zinc-500" />
+              <PlayCircle className="w-8 h-8 text-zinc-500" />
 
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-20">
 
-              <h3 className="text-xl font-medium text-zinc-300">Creative Canvas</h3>
+              <h3 className="text-lg font-bold text-zinc-300 uppercase tracking-widest font-mono">Viewport_Idle</h3>
 
-              <p className="text-sm text-zinc-500 max-w-xs mx-auto leading-relaxed">
+              <p className="text-[10px] text-zinc-500 max-w-xs mx-auto leading-relaxed font-mono uppercase tracking-wide">
 
-                Select <strong>{currentTaskInfo.label}</strong> mode to begin.<br />
-
-                Output will appear here.
+                Awaiting Input Sequence<br />
+                Configure <strong>{currentTaskInfo.label}</strong> parameters
 
               </p>
 

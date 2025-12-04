@@ -133,7 +133,7 @@ INSERT INTO payment_configs (
 }
 ```
 
-**响应**:
+**成功响应**:
 ```json
 {
   "success": true,
@@ -145,6 +145,14 @@ INSERT INTO payment_configs (
     "expireTime": 600,
     "expireAt": "2024-12-02T09:00:00Z"
   }
+}
+```
+
+**错误响应**:
+```json
+{
+  "success": false,
+  "error": "微信支付暂不可用"
 }
 ```
 
@@ -172,7 +180,7 @@ const qrDataURL = await QRCode.toDataURL(data.codeUrl)
 
 **端点**: `GET /api/wechat-pay/query-order?outTradeNo=xxx`
 
-**响应**:
+**成功响应**:
 ```json
 {
   "success": true,
@@ -187,6 +195,14 @@ const qrDataURL = await QRCode.toDataURL(data.codeUrl)
       "transaction_id": "4200001234202412020123456789"
     }
   }
+}
+```
+
+**错误响应**:
+```json
+{
+  "success": false,
+  "error": "订单不存在"
 }
 ```
 

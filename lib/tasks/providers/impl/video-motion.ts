@@ -1,5 +1,6 @@
 /**
- * 动作模仿 Provider
+ * 视频动作模仿 Provider
+ * 只负责调用 Volcengine API
  */
 
 import { getMissingEnvVars, isVolcengineConfigured } from '@/lib/volcengine/client'
@@ -11,25 +12,22 @@ import {
 } from '@/lib/volcengine/motion'
 import { isRetryableError } from '@/lib/volcengine/types'
 
-import { ConfigurationError } from '../errors'
-import type {
-  ProviderExecuteResult,
-  ProviderQueryResult,
-  Task,
-  TaskModeType,
-  TaskResource,
-  TaskTypeType,
-} from '../types'
-import { ResourceType, TaskMode, TaskType } from '../types'
+import type { ProviderExecuteResult, ProviderQueryResult } from '../../core/provider'
+import { BaseProvider } from '../../core/provider'
+import { ConfigurationError } from '../../errors'
+import type { Task, TaskModeType, TaskResource, TaskTypeType } from '../../types'
+import { ResourceType, TaskMode, TaskType } from '../../types'
 
-import { BaseTaskProvider } from './base'
-
-export class VideoMotionProvider extends BaseTaskProvider {
+/**
+ * 视频动作模仿 Provider
+ * 只负责调用 Volcengine API
+ */
+export class VideoMotionProvider extends BaseProvider {
   readonly taskType: TaskTypeType = TaskType.VIDEO_MOTION
   readonly mode: TaskModeType = TaskMode.ASYNC
 
   async execute(_task: Task, inputs: TaskResource[]): Promise<ProviderExecuteResult> {
-    // 检查环境变量
+    // 检查环境变量，当前确保火山第三方平台正确配置
     if (!isVolcengineConfigured()) {
       const missing = getMissingEnvVars()
       throw new ConfigurationError(`环境变量未配置: ${missing.join(', ')}`)

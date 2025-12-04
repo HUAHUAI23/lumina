@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { accounts, chargeOrders, paymentConfigs } from '@/db/schema'
 import { precreateOrder } from '@/lib/alipay'
+import { errorResponse, HttpStatus, successResponse } from '@/lib/api-response'
 import { getCurrentSession } from '@/lib/auth/dal'
 import { yuanToFen } from '@/lib/const'
 import { logger } from '@/lib/logger'
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     // 1. 验证用户登录
     const session = await getCurrentSession()
     if (!session) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
+      return NextResponse.json(errorResponse('未登录'), { status: HttpStatus.UNAUTHORIZED })
     }
 
     // 2. 验证请求参数
@@ -35,16 +36,16 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (!alipayConfig || alipayConfig.status === 'disabled') {
-      return NextResponse.json({ error: '支付宝支付暂不可用' }, { status: 503 })
+      return NextResponse.json(errorResponse('支付宝支付暂不可用'), {
+        status: HttpStatus.SERVICE_UNAVAILABLE,
+      })
     }
 
     // 4. 验证充值金额范围
     if (amount < alipayConfig.minAmount || amount > alipayConfig.maxAmount) {
       return NextResponse.json(
-        {
-          error: `充值金额必须在 ${alipayConfig.minAmount}-${alipayConfig.maxAmount} 元之间`,
-        },
-        { status: 400 }
+        errorResponse(`充值金额必须在 ${alipayConfig.minAmount}-${alipayConfig.maxAmount} 元之间`),
+        { status: HttpStatus.BAD_REQUEST }
       )
     }
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
 
     if (!account) {
-      return NextResponse.json({ error: '账户不存在' }, { status: 404 })
+      return NextResponse.json(errorResponse('账户不存在'), { status: HttpStatus.NOT_FOUND })
     }
 
     // 6. 生成商户订单号
@@ -112,35 +113,27 @@ export async function POST(request: NextRequest) {
     )
 
     // 10. 返回订单信息
-    return NextResponse.json({
-      success: true,
-      data: {
+    return NextResponse.json(
+      successResponse({
         chargeOrderId: chargeOrder.id,
         outTradeNo,
         qrCode,
         amount,
         expireTime: orderTimeoutMinutes * 60, // 秒
         expireAt: expireTime.toISOString(),
-      },
-    })
+      })
+    )
   } catch (error) {
     logger.error(error, '创建支付宝充值订单失败')
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: '参数错误',
-          details: error.issues,
-        },
-        { status: 400 }
-      )
+      return NextResponse.json(errorResponse('参数错误', error.issues), {
+        status: HttpStatus.BAD_REQUEST,
+      })
     }
 
-    return NextResponse.json(
-      {
-        error: '创建订单失败，请稍后重试',
-      },
-      { status: 500 }
-    )
+    return NextResponse.json(errorResponse('创建订单失败，请稍后重试'), {
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+    })
   }
 }

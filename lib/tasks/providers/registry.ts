@@ -4,14 +4,13 @@
 
 import { logger } from '@/lib/logger'
 
+import type { BaseProvider } from '../core/provider'
 import type { TaskTypeType } from '../types'
 
-import type { BaseTaskProvider } from './base'
-
 class ProviderRegistry {
-  private providers = new Map<TaskTypeType, BaseTaskProvider>()
+  private providers = new Map<TaskTypeType, BaseProvider>()
 
-  register(provider: BaseTaskProvider): void {
+  register(provider: BaseProvider): void {
     if (this.providers.has(provider.taskType)) {
       logger.warn({ taskType: provider.taskType }, '覆盖已存在的 Provider')
     }
@@ -19,7 +18,7 @@ class ProviderRegistry {
     logger.info({ taskType: provider.taskType }, '注册 Provider')
   }
 
-  get(taskType: TaskTypeType): BaseTaskProvider | undefined {
+  get(taskType: TaskTypeType): BaseProvider | undefined {
     return this.providers.get(taskType)
   }
 
