@@ -598,6 +598,7 @@ export const taskLogs = pgTable(
 /** 视频动作模仿配置（已实现） */
 export interface VideoMotionConfig {
   taskType: 'video_motion'
+  duration: number
   /**
    * AIGC 隐式标识元数据（用于内容标识和溯源）
    * 依据《人工智能生成合成内容标识办法》

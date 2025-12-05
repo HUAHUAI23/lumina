@@ -62,9 +62,15 @@ const VideoStudio: React.FC = () => {
 
   const currentTaskInfo = videoTasks.find((t) => t.id === activeTask) || videoTasks[0]
 
-  const handleTaskSuccess = (taskId: number) => {
+  const handleTaskSuccess = (taskIds: number[]) => {
     // 任务创建成功，跳转到 dashboard
-    router.push(`/dashboard?taskId=${taskId}`)
+    // 如果创建了多个任务，直接跳转到 dashboard（用户可以看到所有新创建的任务）
+    // 如果只创建了 1 个任务，传递 taskId 参数高亮显示
+    if (taskIds.length === 1) {
+      router.push(`/dashboard?taskId=${taskIds[0]}`)
+    } else {
+      router.push('/dashboard')
+    }
   }
 
   return (

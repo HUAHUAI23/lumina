@@ -14,7 +14,7 @@ import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { db } from '@/db'
-import { accounts, type TaskConfig } from '@/db/schema'
+import { accounts, VideoMotionConfig } from '@/db/schema'
 import { getCurrentSession } from '@/lib/auth/dal'
 import { logger as baseLogger } from '@/lib/logger'
 import { taskService, TaskType } from '@/lib/tasks'
@@ -52,10 +52,7 @@ export async function POST(request: NextRequest) {
 
     // 验证必填字段
     if (!imageFile || !videoFile) {
-      return NextResponse.json(
-        { success: false, error: '请上传图片和视频' },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, error: '请上传图片和视频' }, { status: 400 })
     }
 
     // 验证文件大小
@@ -90,10 +87,7 @@ export async function POST(request: NextRequest) {
 
     // 5. 验证视频文件
     if (!validateVideo(videoBuffer, videoFile.type)) {
-      return NextResponse.json(
-        { success: false, error: '无效的视频文件格式' },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, error: '无效的视频文件格式' }, { status: 400 })
     }
 
     // 6. 解析视频元数据（使用 ffprobe）
@@ -129,73 +123,103 @@ export async function POST(request: NextRequest) {
     logger.info({ key: videoKey }, '上传视频到 TOS')
     const videoUrl = await uploadFile(videoKey, videoBuffer, { contentType: videoFile.type })
 
-    // 9. 创建任务（会自动计算费用并预扣费）
+    // 9. 创建任务（循环创建多个独立任务）
     logger.info(
       {
         duration: videoMetadata.duration,
         estimatedCount,
       },
-      '创建任务并计算费用'
+      `开始创建任务，数量: ${estimatedCount}`
     )
 
-    const task = await taskService.create({
-      accountId: account.id,
-      name: taskName,
-      type: TaskType.VIDEO_MOTION,
-      config: {} as TaskConfig,
-      inputs: [
-        {
-          type: 'image',
-          url: imageUrl,
-          metadata: {
-            filename: imageFile.name,
-            size: imageFile.size,
-            mimeType: imageFile.type,
+    const tasks = []
+    let totalEstimatedCost = 0
+
+    // 循环创建 estimatedCount 个独立任务
+    for (let i = 1; i <= estimatedCount; i++) {
+      const taskNameWithIndex = estimatedCount > 1 ? `${taskName} (${i}/${estimatedCount})` : taskName
+
+      const config: VideoMotionConfig = {
+        taskType: 'video_motion',
+        duration: videoMetadata.duration,
+      }
+
+      const task = await taskService.create({
+        accountId: account.id,
+        name: taskNameWithIndex,
+        type: TaskType.VIDEO_MOTION,
+        config,
+        inputs: [
+          {
+            type: 'image',
+            url: imageUrl,
+            metadata: {
+              filename: imageFile.name,
+              size: imageFile.size,
+              mimeType: imageFile.type,
+            },
           },
-        },
-        {
-          type: 'video',
-          url: videoUrl,
-          metadata: {
-            filename: videoFile.name,
-            size: videoFile.size,
-            mimeType: videoFile.type,
-            duration: videoMetadata.duration,
-            width: videoMetadata.width,
-            height: videoMetadata.height,
-            bitrate: videoMetadata.bitrate,
-            codec: videoMetadata.codec,
+          {
+            type: 'video',
+            url: videoUrl,
+            metadata: {
+              filename: videoFile.name,
+              size: videoFile.size,
+              mimeType: videoFile.type,
+              duration: videoMetadata.duration,
+              width: videoMetadata.width,
+              height: videoMetadata.height,
+              bitrate: videoMetadata.bitrate,
+              codec: videoMetadata.codec,
+            },
           },
+        ],
+        estimatedDuration: videoMetadata.duration,
+        estimatedCount: 1, // 每个任务只生成 1 个视频
+      })
+
+      tasks.push(task)
+      totalEstimatedCost += task.estimatedCost
+
+      logger.info(
+        {
+          taskId: task.id,
+          index: i,
+          total: estimatedCount,
+          estimatedCost: task.estimatedCost,
         },
-      ],
-      estimatedDuration: videoMetadata.duration,
-      estimatedCount,
-    })
+        `任务 ${i}/${estimatedCount} 创建成功`
+      )
+    }
 
     logger.info(
       {
-        taskId: task.id,
-        estimatedCost: task.estimatedCost,
+        taskCount: tasks.length,
+        taskIds: tasks.map((t) => t.id),
+        totalEstimatedCost,
         balance: account.balance,
       },
-      '任务创建成功'
+      '所有任务创建完成'
     )
 
     // 10. 返回结果
     return NextResponse.json({
       success: true,
       data: {
-        id: task.id,
-        type: task.type,
-        name: task.name,
-        status: task.status,
-        estimatedCost: task.estimatedCost,
+        tasks: tasks.map((task) => ({
+          id: task.id,
+          type: task.type,
+          name: task.name,
+          status: task.status,
+          estimatedCost: task.estimatedCost,
+          createdAt: task.createdAt,
+        })),
+        totalEstimatedCost,
         videoMetadata: {
           duration: videoMetadata.duration,
           width: videoMetadata.width,
           height: videoMetadata.height,
         },
-        createdAt: task.createdAt,
       },
     })
   } catch (error) {

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Film, Image as ImageIcon, Info, Loader2, Sparkles, Wand2 } from 'lucide-react'
+import { Film, Image as ImageIcon, Info, Loader2, Wand2 } from 'lucide-react'
 
 import FileUpload from '@/components/FileUpload'
 import { POST } from '@/lib/api-client'
@@ -9,7 +9,7 @@ import type { ApiResponse } from '@/lib/api-response'
 import type { FileWithPreview } from '@/types'
 
 interface VideoMotionFormProps {
-  onSuccess?: (taskId: number) => void
+  onSuccess?: (taskIds: number[]) => void
   userBalance: number
 }
 
@@ -108,14 +108,32 @@ const VideoMotionForm: React.FC<VideoMotionFormProps> = ({ onSuccess, userBalanc
       formData.append('name', `动作模仿 - ${imageFile.file.name}`)
 
       // 调用专用的创建接口（后端会解析视频、上传 TOS、计算费用）
-      const taskResponse = await POST<ApiResponse<{ id: number; estimatedCost: number }>>('/api/tasks/create-motion', formData)
+      const taskResponse = await POST<
+        ApiResponse<{
+          tasks: Array<{
+            id: number
+            type: string
+            name: string
+            status: string
+            estimatedCost: number
+            createdAt: Date
+          }>
+          totalEstimatedCost: number
+          videoMetadata: {
+            duration: number
+            width: number
+            height: number
+          }
+        }>
+      >('/api/tasks/create-motion', formData)
 
       if (!taskResponse.success) {
         throw new Error(taskResponse.error)
       }
 
-      // 成功
-      onSuccess?.(taskResponse.data.id)
+      // 成功 - 传递所有任务的 ID
+      const taskIds = taskResponse.data.tasks.map((task) => task.id)
+      onSuccess?.(taskIds)
     } catch (err) {
       const message = err instanceof Error ? err.message : '创建任务失败'
       setError(message)
@@ -218,24 +236,8 @@ const VideoMotionForm: React.FC<VideoMotionFormProps> = ({ onSuccess, userBalanc
         </p>
       </div>
 
-      {/* AI 图片生成（禁用） */}
-      <div className="space-y-3 opacity-50 pointer-events-none">
-        <label className="text-[10px] font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest border-b border-zinc-800 pb-2">
-          <Sparkles className="w-3 h-3" />
-          AI_Image_Generator
-          <span className="text-[9px] text-amber-400 ml-auto px-1 py-0.5 border border-amber-900/30 bg-amber-900/10 rounded-sm">
-            [COMING_SOON]
-          </span>
-        </label>
-        <div className="p-4 bg-zinc-900/20 border border-zinc-800 rounded-sm flex items-center justify-center">
-          <span className="text-[10px] text-zinc-600 font-mono uppercase">
-            AI 图片生成功能即将上线
-          </span>
-        </div>
-      </div>
-
       {/* 提交按钮 */}
-      <div className="pt-4 border-t border-zinc-800">
+      <div className="pt-6 border-t border-zinc-800">
         <button
           onClick={handleSubmit}
           disabled={!canSubmit}

@@ -116,19 +116,26 @@ export class VideoMotionProvider extends BaseProvider {
       }
     }
 
+    // 类型检查：确保只处理 video_motion 类型的任务
+    const config = task.config
+    if (config.taskType !== 'video_motion') {
+      logger.error(
+        { taskId: task.id, actualType: config.taskType },
+        '❌ [视频动作模仿] 任务类型不匹配，此 Provider 只处理 video_motion 类型'
+      )
+      return {
+        status: 'failed',
+        error: `任务类型不匹配: 期望 video_motion，实际 ${config.taskType}`,
+        retryable: false,
+      }
+    }
+
+    // 经过上面的类型守卫，TypeScript 现在知道 config 是 VideoMotionConfig 类型
     try {
       // 解析任务配置，提取 AIGC 元数据
-      const config = task.config as {
-        aigcMeta?: {
-          contentProducer?: string
-          producerId: string
-          contentPropagator: string
-          propagateId?: string
-        }
-      }
       let aigcMeta
 
-      if (config?.aigcMeta) {
+      if (config.aigcMeta) {
         // 转换 camelCase 到 snake_case（匹配火山引擎 API 要求）
         aigcMeta = {
           content_producer: config.aigcMeta.contentProducer,
@@ -137,10 +144,7 @@ export class VideoMotionProvider extends BaseProvider {
           propagate_id: config.aigcMeta.propagateId,
         }
 
-        logger.info(
-          { taskId: task.id, aigcMeta },
-          '📋 [视频动作模仿] 使用 AIGC 元数据查询任务'
-        )
+        logger.info({ taskId: task.id, aigcMeta }, '📋 [视频动作模仿] 使用 AIGC 元数据查询任务')
       }
 
       const result = await getMotionResult(task.externalTaskId, aigcMeta)
