@@ -34,6 +34,7 @@ import type { ApiResponse } from '@/lib/api-response'
 import { generateStyleImages, generateVideo } from '@/services/geminiService'
 import { Asset, FileWithPreview, TaskType } from '@/types'
 
+import VideoLipsyncForm from './components/VideoLipsyncForm'
 import VideoMotionForm from './components/VideoMotionForm'
 
 // --- Types ---
@@ -242,7 +243,7 @@ const VideoStudio: React.FC = () => {
 
   const videoTasks = [
     { id: TaskType.VIDEO_MOTION, label: 'Motion Transfer', description: 'Transfer movement between videos', icon: Activity },
-    { id: TaskType.VIDEO_GENERATION, label: 'Video Generation', description: 'Text/Image to cinematic video', icon: Film },
+    { id: TaskType.VIDEO_GENERATION, label: 'Video Generation', description: 'Text/Image to cinematic video', icon: Film, disabled: true },
     { id: TaskType.VIDEO_LIPSYNC, label: 'Lip Sync', description: 'Synchronize audio with face', icon: Mic },
   ]
 
@@ -289,11 +290,13 @@ const VideoStudio: React.FC = () => {
                 {videoTasks.map(task => (
                   <button
                     key={task.id}
+                    disabled={task.disabled}
                     onClick={() => {
+                      if (task.disabled) return
                       setActiveTask(task.id)
                       setTaskSelectorOpen(false)
                     }}
-                    className={`w-full flex items-center gap-3 p-3.5 hover:bg-zinc-900/50 transition-colors text-left border-b border-zinc-900 last:border-0 ${activeTask === task.id ? 'bg-zinc-900/80' : ''}`}
+                    className={`w-full flex items-center gap-3 p-3.5 hover:bg-zinc-900/50 transition-colors text-left border-b border-zinc-900 last:border-0 ${activeTask === task.id ? 'bg-zinc-900/80' : ''} ${task.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <task.icon className={`w-4 h-4 ${activeTask === task.id ? 'text-indigo-400' : 'text-zinc-600'}`} />
                     <div className="flex-1">
@@ -533,10 +536,7 @@ const VideoStudio: React.FC = () => {
           )}
 
           {activeTask === TaskType.VIDEO_LIPSYNC && (
-            <div className="flex flex-col items-center justify-center h-64 text-zinc-600 space-y-4">
-              <Mic className="w-12 h-12 opacity-20" />
-              <p className="text-xs font-mono uppercase tracking-widest">Lip Sync Module Offline</p>
-            </div>
+            <VideoLipsyncForm onSuccess={handleMotionSuccess} userBalance={userBalance} />
           )}
 
         </div>

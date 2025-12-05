@@ -4,7 +4,7 @@
  */
 
 import ffmpeg from 'fluent-ffmpeg'
-import { unlink,writeFile } from 'fs/promises'
+import { unlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -22,10 +22,7 @@ export interface VideoMetadata {
  * 从视频 Buffer 中提取元数据
  * 使用 ffprobe 解析视频信息
  */
-export async function parseVideoMetadata(
-  buffer: Buffer,
-  mimeType: string
-): Promise<VideoMetadata> {
+export async function parseVideoMetadata(buffer: Buffer, mimeType: string): Promise<VideoMetadata> {
   // 创建临时文件
   const ext = mimeType.split('/')[1] || 'mp4'
   const tempPath = join(tmpdir(), `video-${Date.now()}.${ext}`)
@@ -102,6 +99,89 @@ export function validateVideo(buffer: Buffer, mimeType: string): boolean {
     // WebM 文件以 EBML 开头
     const webmMagic = Buffer.from([0x1a, 0x45, 0xdf, 0xa3])
     return buffer.subarray(0, 4).equals(webmMagic)
+  }
+
+  return true
+}
+
+export interface AudioMetadata {
+  duration: number
+  size: number
+  mimeType: string
+  bitrate?: number
+  codec?: string
+  sampleRate?: number
+  channels?: number
+}
+
+/**
+ * 从音频 Buffer 中提取元数据
+ */
+export async function parseAudioMetadata(buffer: Buffer, mimeType: string): Promise<AudioMetadata> {
+  const ext = mimeType.split('/')[1] || 'mp3'
+  const tempPath = join(tmpdir(), `audio-${Date.now()}.${ext}`)
+
+  try {
+    await writeFile(tempPath, buffer)
+
+    const metadata = await new Promise<AudioMetadata>((resolve, reject) => {
+      ffmpeg.ffprobe(tempPath, (err, metadata) => {
+        if (err) {
+          reject(new Error(`音频解析失败: ${err.message}`))
+          return
+        }
+
+        const audioStream = metadata.streams.find((s) => s.codec_type === 'audio')
+
+        if (!audioStream) {
+          reject(new Error('无法找到音频流'))
+          return
+        }
+
+        const duration = Math.ceil(metadata.format.duration || 0)
+
+        resolve({
+          duration,
+          size: buffer.length,
+          mimeType,
+          bitrate: metadata.format.bit_rate,
+          codec: audioStream.codec_name,
+          sampleRate:
+            typeof audioStream.sample_rate === 'number'
+              ? audioStream.sample_rate
+              : parseInt(audioStream.sample_rate || '0'),
+          channels: audioStream.channels,
+        })
+      })
+    })
+
+    return metadata
+  } finally {
+    try {
+      await unlink(tempPath)
+    } catch (e) {
+      console.error('清理临时文件失败:', e)
+    }
+  }
+}
+
+/**
+ * 验证音频文件
+ */
+export function validateAudio(buffer: Buffer, mimeType: string): boolean {
+  if (buffer.length === 0) return false
+
+  const validTypes = [
+    'audio/mpeg',
+    'audio/wav',
+    'audio/x-wav',
+    'audio/mp4',
+    'audio/aac',
+    'audio/x-m4a',
+  ]
+  if (!validTypes.includes(mimeType) && !mimeType.startsWith('audio/')) {
+    // 宽松验证，只要是 audio/ 开头都可以
+    // return false
   }
 
   return true
