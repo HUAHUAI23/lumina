@@ -598,6 +598,20 @@ export const taskLogs = pgTable(
 /** 视频动作模仿配置（已实现） */
 export interface VideoMotionConfig {
   taskType: 'video_motion'
+  /**
+   * AIGC 隐式标识元数据（用于内容标识和溯源）
+   * 依据《人工智能生成合成内容标识办法》
+   */
+  aigcMeta?: {
+    /** 内容生成服务ID（可选，长度 <= 256字符） */
+    contentProducer?: string
+    /** 内容生成服务商给此视频数据的唯一ID（必选，长度 <= 256字符） */
+    producerId: string
+    /** 内容传播服务商ID（必选，长度 <= 256字符） */
+    contentPropagator: string
+    /** 传播服务商给此视频数据的唯一ID（可选，长度 <= 256字符） */
+    propagateId?: string
+  }
 }
 
 /** 视频口播配置（未实现） */
@@ -675,6 +689,8 @@ export interface VideoMetadata extends BaseMetadata {
   size?: number
   mimeType?: string
   fps?: number
+  bitrate?: number
+  codec?: string
 }
 
 /** 资源元数据联合类型（当前只实现了图片和视频） */

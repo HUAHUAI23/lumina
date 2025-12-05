@@ -5,6 +5,9 @@
 import { db } from '@/db'
 import { taskLogs } from '@/db/schema'
 
+// 支持 db 或事务上下文
+type DbOrTransaction = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0]
+
 /**
  * 记录任务日志
  */
@@ -12,16 +15,21 @@ export async function logTask(
   taskId: number,
   level: 'info' | 'warn' | 'error',
   message: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
+  dbOrTx: DbOrTransaction = db
 ): Promise<void> {
-  await db.insert(taskLogs).values({ taskId, level, message, data })
+  await dbOrTx.insert(taskLogs).values({ taskId, level, message, data })
 }
 
 /**
  * 记录任务创建
  */
-export async function logTaskCreated(taskId: number, estimatedCost: number): Promise<void> {
-  await logTask(taskId, 'info', '任务创建成功', { estimatedCost })
+export async function logTaskCreated(
+  taskId: number,
+  estimatedCost: number,
+  dbOrTx: DbOrTransaction = db
+): Promise<void> {
+  await logTask(taskId, 'info', '任务创建成功', { estimatedCost }, dbOrTx)
 }
 
 /**

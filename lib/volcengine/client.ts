@@ -5,6 +5,9 @@
 import { createHash, createHmac } from 'crypto'
 
 import { env } from '../env'
+import { logger as baseLogger } from '../logger'
+
+const logger = baseLogger.child({ module: 'volcengine/client' })
 
 const CV_ENDPOINT = 'https://visual.volcengineapi.com'
 const CV_SERVICE = 'cv'
@@ -186,6 +189,17 @@ export async function request<T = unknown>(
   const result = (await response.json()) as VolcengineResponse<T>
 
   if (result.code !== 10000) {
+    logger.error(
+      {
+        action,
+        code: result.code,
+        message: result.message,
+        requestId: result.request_id,
+        httpStatus: response.status,
+      },
+      '❌ [火山引擎] API 调用失败'
+    )
+
     throw Object.assign(new Error(result.message || `API 错误: ${result.code}`), {
       code: result.code,
       statusCode: response.status,

@@ -2,7 +2,7 @@
  * 任务服务
  */
 
-import { and, count, desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, SQL } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { taskResources, tasks } from '@/db/schema'
@@ -15,7 +15,7 @@ import {
   refundTask,
 } from './billing'
 import { TaskNotFoundError } from './errors'
-import type { CreateTaskParams } from './types'
+import type { CreateTaskParams, Task, TaskStatusType, TaskTypeType } from './types'
 import { TASK_TYPE_TO_CATEGORY, TASK_TYPE_TO_MODE, TaskCategory, TaskStatus } from './types'
 
 /**
@@ -72,8 +72,8 @@ async function create(params: CreateTaskParams) {
       )
     }
 
-    // 记录日志
-    await logTaskCreated(task.id, cost)
+    // 记录日志（传递事务上下文）
+    await logTaskCreated(task.id, cost, tx)
 
     return task
   })
@@ -118,7 +118,60 @@ async function cancel(taskId: number): Promise<void> {
   await refundTask(task)
 }
 
+/**
+ * 查询任务列表
+ */
+interface ListTasksOptions {
+  status?: TaskStatusType
+  type?: TaskTypeType
+  limit?: number
+  offset?: number
+}
+
+interface ListTasksResult {
+  tasks: Task[]
+  total: number
+}
+
+async function list(accountId: number, options: ListTasksOptions = {}): Promise<ListTasksResult> {
+  const { status, type, limit = 20, offset = 0 } = options
+
+  // 构建查询条件
+  const conditions: SQL[] = [eq(tasks.accountId, accountId)]
+
+  if (status) {
+    conditions.push(eq(tasks.status, status))
+  }
+
+  if (type) {
+    conditions.push(eq(tasks.type, type))
+  }
+
+  const where = conditions.length > 1 ? and(...conditions) : conditions[0]
+
+  // 查询任务列表
+  const taskList = await db
+    .select()
+    .from(tasks)
+    .where(where)
+    .orderBy(desc(tasks.createdAt))
+    .limit(limit)
+    .offset(offset)
+
+  // 查询总数
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(tasks)
+    .where(where)
+
+  return {
+    tasks: taskList,
+    total,
+  }
+}
+
 export const taskService = {
   create,
   cancel,
+  list,
 }

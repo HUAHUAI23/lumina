@@ -12,9 +12,10 @@ export const env = createEnv({
     AUTH_SECRET: z.string().min(1),
     GITHUB_CLIENT_ID: z.string().optional(),
     GITHUB_CLIENT_SECRET: z.string().optional(),
-    // 除始积分
-    INITIAL_CREDITS: z.coerce.number().default(0),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    // 日志配置
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+    DB_QUERY_LOGGING: z.coerce.boolean().default(false), // 数据库查询日志独立开关
     // Login method toggles
     ENABLE_PASSWORD_AUTH: z.coerce.boolean().default(true),
     ENABLE_GITHUB_AUTH: z.coerce.boolean().default(true),
@@ -34,17 +35,21 @@ export const env = createEnv({
     WECHAT_PAY_PLATFORM_CERT_SERIAL_NO: z.string().optional(),
     WECHAT_PAY_NOTIFY_URL: z.string().url().optional(),
 
-    // 火山引擎配置（可选，未配置时相关任务立即失败）
+    // TOS 对象存储配置（可选，未配置时相关任务立即失败）
+    TOS_ACCESS_KEY: z.string().optional(),
+    TOS_SECRET_KEY: z.string().optional(),
+    TOS_REGION: z.string().default('cn-north-1'),
+    TOS_ENDPOINT: z.string().default('tos-cn-beijing.volces.com'),
+    TOS_BUCKET_NAME: z.string().optional(),
+
+    // 火山引擎 CV 生成服务配置（可选，未配置时相关任务立即失败）
     VOLCENGINE_ACCESS_KEY: z.string().optional(),
     VOLCENGINE_SECRET_KEY: z.string().optional(),
     VOLCENGINE_REGION: z.string().default('cn-north-1'),
-    VOLCENGINE_ENDPOINT: z.string().default('tos-cn-beijing.volces.com'),
-    VOLCENGINE_BUCKET_NAME: z.string().optional(),
 
-    // 任务调度配置（双循环设计，详见 docs/task-system-design.md）
     TASK_SCHEDULER_ENABLED: z.coerce.boolean().default(true), // 调度器开关
     TASK_SCHEDULER_INTERVAL: z.coerce.number().default(5), // 主循环间隔（秒）
-    TASK_ASYNC_POLL_INTERVAL: z.coerce.number().default(30), // 异步查询间隔（秒）
+    TASK_ASYNC_POLL_INTERVAL: z.coerce.number().default(60), // 异步查询间隔（秒）
     TASK_TIMEOUT_MINUTES: z.coerce.number().default(30), // 同步任务超时时间（分钟）
     TASK_ASYNC_TIMEOUT_MINUTES: z.coerce.number().default(120), // 异步任务超时时间（分钟）
     TASK_MAX_RETRIES: z.coerce.number().default(3), // 最大重试次数

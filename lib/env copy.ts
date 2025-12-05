@@ -41,12 +41,12 @@ export const env = createEnv({
     VOLCENGINE_BUCKET_NAME: z.string().optional(),
 
     // 任务调度配置（双循环设计，详见 docs/task-system-design.md）
-    TASK_SCHEDULER_ENABLED: z.coerce.boolean().default(true),   // 调度器开关
-    TASK_SCHEDULER_INTERVAL: z.coerce.number().default(5),      // 主循环间隔（秒）
-    TASK_ASYNC_POLL_INTERVAL: z.coerce.number().default(30),    // 异步查询间隔（秒）
-    TASK_TIMEOUT_MINUTES: z.coerce.number().default(30),        // 任务超时时间（分钟）
-    TASK_MAX_RETRIES: z.coerce.number().default(3),             // 最大重试次数
-    TASK_BATCH_SIZE: z.coerce.number().default(10),             // 每次拉取任务数
+    TASK_SCHEDULER_ENABLED: z.coerce.boolean().default(true), // 调度器开关
+    TASK_SCHEDULER_INTERVAL: z.coerce.number().default(5), // 主循环间隔（秒）
+    TASK_ASYNC_POLL_INTERVAL: z.coerce.number().default(30), // 异步查询间隔（秒）
+    TASK_TIMEOUT_MINUTES: z.coerce.number().default(30), // 任务超时时间（分钟）
+    TASK_MAX_RETRIES: z.coerce.number().default(3), // 最大重试次数
+    TASK_BATCH_SIZE: z.coerce.number().default(10), // 每次拉取任务数
   },
   /*
    * Environment variables available on the client (and server).

@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs'
 import { eq, or } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { userIdentities, users } from '@/db/schema'
+import { accounts, userIdentities, users } from '@/db/schema'
 
 import 'server-only'
 
@@ -51,6 +51,12 @@ export async function registerUser(username: string, email: string, password: st
         },
       },
       isPrimary: true,
+    })
+
+    // Create account with zero balance
+    await tx.insert(accounts).values({
+      userId: newUser.id,
+      balance: 0,
     })
 
     return newUser
@@ -176,6 +182,12 @@ export async function findOrCreateGithubUser(githubUser: {
         },
       },
       isPrimary: true,
+    })
+
+    // Create account with zero balance
+    await tx.insert(accounts).values({
+      userId: newUser.id,
+      balance: 0,
     })
 
     return newUser
