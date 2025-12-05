@@ -36,15 +36,15 @@
 
 ### 技术栈
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Next.js | 16.0.5 | 应用框架 |
-| React | 19.2.0 | UI 框架 |
+| 技术        | 版本   | 用途       |
+| ----------- | ------ | ---------- |
+| Next.js     | 16.0.5 | 应用框架   |
+| React       | 19.2.0 | UI 框架    |
 | Drizzle ORM | 0.44.7 | 数据库 ORM |
-| PostgreSQL | - | 数据库 |
-| Jose | 6.1.2 | JWT 处理 |
-| bcryptjs | 3.0.3 | 密码加密 |
-| Zod | 4.1.13 | 数据验证 |
+| PostgreSQL  | -      | 数据库     |
+| Jose        | 6.1.2  | JWT 处理   |
+| bcryptjs    | 3.0.3  | 密码加密   |
+| Zod         | 4.1.13 | 数据验证   |
 
 ---
 
@@ -278,29 +278,29 @@
 
 用户基本信息表。
 
-| 字段 | 类型 | 约束 | 说明 |
-|------|------|------|------|
-| id | serial | PRIMARY KEY | 用户ID |
-| username | varchar(64) | NOT NULL, UNIQUE | 用户名 |
-| email | varchar(255) | UNIQUE | 邮箱（可选） |
-| avatar | text | DEFAULT '' | 头像 URL |
-| created_at | timestamptz | NOT NULL | 创建时间 |
-| updated_at | timestamptz | NOT NULL | 更新时间 |
+| 字段       | 类型         | 约束             | 说明         |
+| ---------- | ------------ | ---------------- | ------------ |
+| id         | serial       | PRIMARY KEY      | 用户ID       |
+| username   | varchar(64)  | NOT NULL, UNIQUE | 用户名       |
+| email      | varchar(255) | UNIQUE           | 邮箱（可选） |
+| avatar     | text         | DEFAULT ''       | 头像 URL     |
+| created_at | timestamptz  | NOT NULL         | 创建时间     |
+| updated_at | timestamptz  | NOT NULL         | 更新时间     |
 
 #### user_identities 表
 
 用户身份认证方式表（支持多种登录方式）。
 
-| 字段 | 类型 | 约束 | 说明 |
-|------|------|------|------|
-| id | serial | PRIMARY KEY | 身份ID |
-| user_id | integer | NOT NULL, FK → users.id | 所属用户 |
-| provider | auth_provider | NOT NULL | 认证提供商 |
-| provider_user_id | varchar(128) | NOT NULL | 提供商的用户ID |
-| metadata | jsonb | NOT NULL | 认证元数据 |
-| is_primary | boolean | DEFAULT false | 是否为主要认证方式 |
-| created_at | timestamptz | NOT NULL | 创建时间 |
-| updated_at | timestamptz | NOT NULL | 更新时间 |
+| 字段             | 类型          | 约束                    | 说明               |
+| ---------------- | ------------- | ----------------------- | ------------------ |
+| id               | serial        | PRIMARY KEY             | 身份ID             |
+| user_id          | integer       | NOT NULL, FK → users.id | 所属用户           |
+| provider         | auth_provider | NOT NULL                | 认证提供商         |
+| provider_user_id | varchar(128)  | NOT NULL                | 提供商的用户ID     |
+| metadata         | jsonb         | NOT NULL                | 认证元数据         |
+| is_primary       | boolean       | DEFAULT false           | 是否为主要认证方式 |
+| created_at       | timestamptz   | NOT NULL                | 创建时间           |
+| updated_at       | timestamptz   | NOT NULL                | 更新时间           |
 
 **索引**:
 - UNIQUE(provider, provider_user_id) - 防止重复绑定
@@ -330,13 +330,13 @@
 
 用户账户表（积分、余额等）。
 
-| 字段 | 类型 | 约束 | 说明 |
-|------|------|------|------|
-| id | serial | PRIMARY KEY | 账户ID |
-| user_id | integer | NOT NULL, UNIQUE, FK → users.id | 所属用户 |
-| balance | bigint | NOT NULL, DEFAULT 0 | 积分余额 |
-| created_at | timestamptz | NOT NULL | 创建时间 |
-| updated_at | timestamptz | NOT NULL | 更新时间 |
+| 字段       | 类型        | 约束                            | 说明     |
+| ---------- | ----------- | ------------------------------- | -------- |
+| id         | serial      | PRIMARY KEY                     | 账户ID   |
+| user_id    | integer     | NOT NULL, UNIQUE, FK → users.id | 所属用户 |
+| balance    | bigint      | NOT NULL, DEFAULT 0             | 积分余额 |
+| created_at | timestamptz | NOT NULL                        | 创建时间 |
+| updated_at | timestamptz | NOT NULL                        | 更新时间 |
 
 **注意**:
 - `balance` 使用 `bigint` 类型但配置为 `mode: 'number'`
@@ -347,19 +347,19 @@
 
 通用验证码表，支持多渠道（邮箱、短信、语音、WhatsApp）。
 
-| 字段 | 类型 | 约束 | 说明 |
-|------|------|------|------|
-| id | serial | PRIMARY KEY | 验证码ID |
-| recipient | varchar(255) | NOT NULL | 接收方（邮箱/手机） |
-| channel | verification_channel | NOT NULL | 投递渠道 |
-| code_hash | varchar(255) | NOT NULL | 验证码哈希 |
-| purpose | varchar(50) | NOT NULL | 用途 (login/register) |
-| expires_at | timestamptz | NOT NULL | 过期时间 (≤5分钟) |
-| used | boolean | DEFAULT false | 是否已使用 |
-| attempts | integer | DEFAULT 0 | 尝试次数 |
-| max_attempts | integer | DEFAULT 5 | 最大尝试次数 |
-| user_id | integer | NULLABLE, FK → users.id | 关联用户 |
-| created_at | timestamptz | NOT NULL | 创建时间 |
+| 字段         | 类型                 | 约束                    | 说明                  |
+| ------------ | -------------------- | ----------------------- | --------------------- |
+| id           | serial               | PRIMARY KEY             | 验证码ID              |
+| recipient    | varchar(255)         | NOT NULL                | 接收方（邮箱/手机）   |
+| channel      | verification_channel | NOT NULL                | 投递渠道              |
+| code_hash    | varchar(255)         | NOT NULL                | 验证码哈希            |
+| purpose      | varchar(50)          | NOT NULL                | 用途 (login/register) |
+| expires_at   | timestamptz          | NOT NULL                | 过期时间 (≤5分钟)     |
+| used         | boolean              | DEFAULT false           | 是否已使用            |
+| attempts     | integer              | DEFAULT 0               | 尝试次数              |
+| max_attempts | integer              | DEFAULT 5               | 最大尝试次数          |
+| user_id      | integer              | NULLABLE, FK → users.id | 关联用户              |
+| created_at   | timestamptz          | NOT NULL                | 创建时间              |
 
 **索引**:
 - INDEX(recipient, channel)
@@ -650,9 +650,6 @@ AUTH_SECRET=$(openssl rand -base64 32)
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
 
-# 初始积分 (默认: 0)
-INITIAL_CREDITS=500
-
 # 环境
 NODE_ENV=production
 ```
@@ -710,8 +707,8 @@ pnpm db:migrate
 
 ## 版本历史
 
-| 版本 | 日期 | 变更内容 |
-|------|------|----------|
+| 版本  | 日期    | 变更内容                                     |
+| ----- | ------- | -------------------------------------------- |
 | 1.0.0 | 2025-12 | 初始版本 - 实现用户名密码登录和 GitHub OAuth |
 
 ---

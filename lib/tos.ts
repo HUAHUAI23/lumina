@@ -13,15 +13,15 @@ let tosClient: TosClient | null = null
 export function getTosClient(): TosClient {
   if (tosClient) return tosClient
 
-  if (!env.VOLCENGINE_ACCESS_KEY || !env.VOLCENGINE_SECRET_KEY || !env.VOLCENGINE_BUCKET_NAME) {
-    throw new Error('环境变量未配置: VOLCENGINE_ACCESS_KEY, VOLCENGINE_SECRET_KEY, VOLCENGINE_BUCKET_NAME')
+  if (!env.TOS_ACCESS_KEY || !env.TOS_SECRET_KEY || !env.TOS_BUCKET_NAME) {
+    throw new Error('环境变量未配置: TOS_ACCESS_KEY, TOS_SECRET_KEY, TOS_BUCKET_NAME')
   }
 
   tosClient = new TosClient({
-    accessKeyId: env.VOLCENGINE_ACCESS_KEY,
-    accessKeySecret: env.VOLCENGINE_SECRET_KEY,
-    region: env.VOLCENGINE_REGION,
-    endpoint: env.VOLCENGINE_ENDPOINT,
+    accessKeyId: env.TOS_ACCESS_KEY,
+    accessKeySecret: env.TOS_SECRET_KEY,
+    region: env.TOS_REGION,
+    endpoint: env.TOS_ENDPOINT,
   })
 
   return tosClient
@@ -29,23 +29,33 @@ export function getTosClient(): TosClient {
 
 /** 检查 TOS 是否已配置 */
 export function isTosConfigured(): boolean {
-  return !!(env.VOLCENGINE_ACCESS_KEY && env.VOLCENGINE_SECRET_KEY && env.VOLCENGINE_BUCKET_NAME)
+  return !!(env.TOS_ACCESS_KEY && env.TOS_SECRET_KEY && env.TOS_BUCKET_NAME)
 }
 
 /** 生成完整的 TOS URL */
 export function getTosUrl(key: string): string {
-  return `https://${env.VOLCENGINE_BUCKET_NAME}.${env.VOLCENGINE_ENDPOINT}/${key}`
+  return `https://${env.TOS_BUCKET_NAME}.${env.TOS_ENDPOINT}/${key}`
 }
 
 // ==================== 路径生成 ====================
 
 /** 输入资源路径: input/{userId}/{taskType}/{taskId}/{filename} */
-export function getInputPath(userId: string, taskType: string, taskId: string, filename: string): string {
+export function getInputPath(
+  userId: string,
+  taskType: string,
+  taskId: string,
+  filename: string
+): string {
   return `input/${userId}/${taskType}/${taskId}/${filename}`
 }
 
 /** 输出资源路径: output/{userId}/{taskType}/{taskId}/{filename} */
-export function getOutputPath(userId: string, taskType: string, taskId: string, filename: string): string {
+export function getOutputPath(
+  userId: string,
+  taskType: string,
+  taskId: string,
+  filename: string
+): string {
   return `output/${userId}/${taskType}/${taskId}/${filename}`
 }
 
@@ -78,7 +88,7 @@ export async function uploadFile(
   options?: UploadOptions
 ): Promise<string> {
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   try {
     await client.putObject({
@@ -111,7 +121,7 @@ export async function uploadFromUrl(key: string, sourceUrl: string): Promise<str
 /** 下载 TOS 文件 */
 export async function downloadFile(key: string): Promise<Buffer> {
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   try {
     const { data } = await client.getObjectV2({ bucket, key })
@@ -131,7 +141,7 @@ export async function downloadFile(key: string): Promise<Buffer> {
 /** 复制文件（用于将临时文件移动到正式目录） */
 export async function copyFile(sourceKey: string, destKey: string): Promise<string> {
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   try {
     await client.copyObject({
@@ -150,7 +160,7 @@ export async function copyFile(sourceKey: string, destKey: string): Promise<stri
 /** 删除文件 */
 export async function deleteFile(key: string): Promise<void> {
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   try {
     await client.deleteObject({ bucket, key })
@@ -164,7 +174,7 @@ export async function deleteFiles(keys: string[]): Promise<void> {
   if (keys.length === 0) return
 
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   try {
     await client.deleteMultiObjects({
@@ -179,7 +189,7 @@ export async function deleteFiles(keys: string[]): Promise<void> {
 /** 检查文件是否存在 */
 export async function fileExists(key: string): Promise<boolean> {
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   try {
     await client.headObject({ bucket, key })
@@ -192,7 +202,7 @@ export async function fileExists(key: string): Promise<boolean> {
 /** 生成预签名上传 URL（用于前端直传） */
 export async function getPresignedUploadUrl(key: string, expiresIn = 3600): Promise<string> {
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   const result = client.getPreSignedUrl({
     bucket,
@@ -207,7 +217,7 @@ export async function getPresignedUploadUrl(key: string, expiresIn = 3600): Prom
 /** 生成预签名下载 URL */
 export async function getPresignedDownloadUrl(key: string, expiresIn = 3600): Promise<string> {
   const client = getTosClient()
-  const bucket = env.VOLCENGINE_BUCKET_NAME!
+  const bucket = env.TOS_BUCKET_NAME!
 
   const result = client.getPreSignedUrl({
     bucket,

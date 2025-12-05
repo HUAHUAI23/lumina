@@ -4,9 +4,8 @@ import React, { useState } from 'react'
 import { Activity, Check, ChevronDown, Film, Image as ImageIcon, Info, Loader2, Mic, Monitor, MonitorPlay, PlayCircle, Settings2, Smartphone, Sparkles, Square, Tv, Wand2, X } from 'lucide-react'
 
 import FileUpload from '@/components/FileUpload'
-
-import { analyzeVideoContent, generateStyleImages, generateVideo } from '../../../services/geminiService'
-import { AnalysisResult, Asset, FileWithPreview, TaskType } from '../../../types'
+import { analyzeVideoContent, generateStyleImages, generateVideo } from '@/services/geminiService'
+import { AnalysisResult, Asset, FileWithPreview, TaskType } from '@/types'
 
 const VideoStudio: React.FC = () => {
 

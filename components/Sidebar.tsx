@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { Film, Frame, LayoutDashboard, Loader2, LogOut, Plus, Wallet } from 'lucide-react'
+import { Clapperboard, Film, Frame, LayoutDashboard, Loader2, LogOut, Plus, Wallet } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -21,7 +21,7 @@ interface UserData {
 
 // Map custom icons to nav items
 const iconMap: Record<string, any> = {
-  'dashboard': LayoutDashboard,
+  'dashboard': Clapperboard,
   'video-studio': Film,
   'image-studio': Frame,
   'billing': Wallet

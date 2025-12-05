@@ -12,12 +12,35 @@ export interface SubmitTaskData {
   task_id: string
 }
 
+export interface SubmitTaskResult {
+  taskId: string
+  requestId?: string
+}
+
 export interface GetResultData {
   status: MotionTaskStatus
   video_url?: string
 }
 
-export async function submitMotionTask(imageUrl: string, videoUrl: string): Promise<string> {
+/**
+ * AIGC 隐式标识元数据
+ * 依据《人工智能生成合成内容标识办法》&《网络安全技术人工智能生成合成内容标识方法》
+ */
+export interface AigcMeta {
+  /** 内容生成服务ID（长度 <= 256字符，可选） */
+  content_producer?: string
+  /** 内容生成服务商给此视频数据的唯一ID（长度 <= 256字符，必选） */
+  producer_id: string
+  /** 内容传播服务商ID（长度 <= 256字符，必选） */
+  content_propagator: string
+  /** 传播服务商给此视频数据的唯一ID（长度 <= 256字符，可选） */
+  propagate_id?: string
+}
+
+export async function submitMotionTask(
+  imageUrl: string,
+  videoUrl: string
+): Promise<SubmitTaskResult> {
   const response = await request<SubmitTaskData>('CVSync2AsyncSubmitTask', {
     req_key: REQ_KEY,
     image_url: imageUrl,
@@ -25,17 +48,35 @@ export async function submitMotionTask(imageUrl: string, videoUrl: string): Prom
   })
 
   if (!response.data?.task_id) {
-    throw new Error('提交任务成功但未返回 task_id')
+    const error = new Error(
+      `提交任务成功但未返回 task_id${response.request_id ? `，requestId: ${response.request_id}` : ''}`
+    )
+    // 将 requestId 附加到错误对象
+    ;(error as Error & { requestId?: string }).requestId = response.request_id
+    throw error
   }
 
-  return response.data.task_id
+  return {
+    taskId: response.data.task_id,
+    requestId: response.request_id,
+  }
 }
 
-export async function getMotionResult(taskId: string): Promise<GetResultData> {
-  const response = await request<GetResultData>('CVSync2AsyncGetResult', {
+export async function getMotionResult(
+  taskId: string,
+  aigcMeta?: AigcMeta
+): Promise<GetResultData> {
+  const params: Record<string, unknown> = {
     req_key: REQ_KEY,
     task_id: taskId,
-  })
+  }
+
+  // 如果提供了 AIGC 元数据，添加 req_json 参数
+  if (aigcMeta && Object.keys(aigcMeta).length > 0) {
+    params.req_json = JSON.stringify({ aigc_meta: aigcMeta })
+  }
+
+  const response = await request<GetResultData>('CVSync2AsyncGetResult', params)
 
   if (!response.data) {
     throw new Error('查询结果成功但未返回数据')

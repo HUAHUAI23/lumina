@@ -62,6 +62,10 @@ async function runMainLoop(): Promise<void> {
       return claimed
     })
 
+    if (pendingTasks.length > 0) {
+      logger.info({ count: pendingTasks.length }, '🔄 [主循环] 领取到待处理任务')
+    }
+
     // 2. 执行任务
     for (const task of pendingTasks) {
       try {
@@ -74,10 +78,19 @@ async function runMainLoop(): Promise<void> {
     // 3. 恢复超时任务
     const recovered = await recoverTimeoutTasks()
     if (recovered > 0) {
-      logger.info({ count: recovered }, '恢复超时任务')
+      logger.info({ count: recovered }, '♻️ [主循环] 已恢复超时任务')
     }
   } catch (error) {
-    logger.error({ error }, '主循环异常')
+    const err = error as Error
+    logger.error(
+      {
+        error: err.message,
+        stack: err.stack,
+        name: err.name,
+        code: (err as any).code,
+      },
+      '❌ [主循环] 主循环执行异常'
+    )
   }
 }
 
@@ -89,38 +102,62 @@ async function runAsyncPollLoop(): Promise<void> {
   if (!isRunning) return
 
   const batchSize = env.TASK_BATCH_SIZE
+  const queriedTaskIds = new Set<number>()
 
   try {
-    // 逐个领取并处理异步任务（每个任务独立事务锁定）
-    for (let i = 0; i < batchSize; i++) {
-      // 领取一个异步任务（使用 FOR UPDATE SKIP LOCKED）
-      const task = await db.transaction(async (tx) => {
-        const [claimed] = await tx
-          .select()
-          .from(tasks)
-          .where(
-            and(
-              eq(tasks.status, TaskStatus.PROCESSING),
-              eq(tasks.mode, TaskMode.ASYNC),
-              isNotNull(tasks.externalTaskId)
-            )
+    // 批量领取所有待查询的异步任务（一次事务）
+    const tasksToQuery = await db.transaction(async (tx) => {
+      const claimed = await tx
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.status, TaskStatus.PROCESSING),
+            eq(tasks.mode, TaskMode.ASYNC),
+            isNotNull(tasks.externalTaskId)
           )
-          .limit(1)
-          .for('update', { skipLocked: true })
+        )
+        .limit(batchSize)
+        .for('update', { skipLocked: true })
 
-        return claimed
-      })
+      return claimed
+    })
 
-      if (!task) break // 没有更多待查询的任务
+    // 处理每个任务
+    for (const task of tasksToQuery) {
+      // 防止重复查询
+      if (queriedTaskIds.has(task.id)) {
+        logger.warn({ taskId: task.id }, '⚠️ [异步查询循环] 检测到重复任务，跳过')
+        continue
+      }
+
+      queriedTaskIds.add(task.id)
 
       try {
         await queryAsyncTask(task)
       } catch (error) {
-        logger.error({ taskId: task.id, error }, '异步任务查询异常')
+        const err = error as Error
+        logger.error(
+          { taskId: task.id, error: err.message, stack: err.stack },
+          '❌ [异步查询循环] 单个任务查询异常'
+        )
       }
     }
+
+    if (queriedTaskIds.size > 0) {
+      logger.info({ count: queriedTaskIds.size }, '🔄 [异步查询循环] 已查询异步任务')
+    }
   } catch (error) {
-    logger.error({ error }, '异步查询循环异常')
+    const err = error as Error
+    logger.error(
+      {
+        error: err.message,
+        stack: err.stack,
+        name: err.name,
+        code: (err as any).code,
+      },
+      '❌ [异步查询循环] 循环执行异常'
+    )
   }
 }
 
@@ -228,13 +265,35 @@ async function recoverTimeoutTasks(): Promise<number> {
 
     recoveredCount++
 
+    logger.warn(
+      {
+        taskId: task.id,
+        taskType: task.type,
+        retryCount: task.retryCount,
+        maxRetries,
+        mode: task.mode,
+      },
+      '⏱️ [超时恢复] 检测到超时任务'
+    )
+
     if (task.retryCount < maxRetries) {
       // 未达到最大重试次数：增加 retryCount 并重试
       const delay = calculateRetryDelay(task.retryCount)
       const nextRetryAt = new Date(Date.now() + delay * 1000)
 
+      // 判断是否需要清空 externalTaskId
+      // - 同步任务：清空，重新执行
+      // - 异步任务：保留，继续查询原任务
+      const shouldClearExternalId = task.mode === TaskMode.SYNC
+
       // 超时重试（带条件检查）
-      const updated = await resetTaskForRetry(task.id, task.retryCount + 1, nextRetryAt)
+      const updated = await resetTaskForRetry(
+        task.id,
+        task.retryCount + 1,
+        nextRetryAt,
+        shouldClearExternalId
+      )
+
       if (!updated) {
         logger.warn({ taskId: task.id }, '任务状态已变更，跳过超时恢复')
         continue
@@ -245,12 +304,18 @@ async function recoverTimeoutTasks(): Promise<number> {
       logger.warn(
         {
           taskId: task.id,
+          taskType: task.type,
+          taskMode: task.mode,
           retryCount: task.retryCount + 1,
           maxRetries,
           delay,
           nextRetryAt,
+          hasExternalTaskId: !!task.externalTaskId,
+          willResubmit: shouldClearExternalId,
         },
-        '任务超时，将重试'
+        task.mode === TaskMode.SYNC
+          ? `🔄 [超时恢复] 同步任务超时，将在 ${delay}秒后重新执行（第 ${task.retryCount + 1}/${maxRetries} 次）`
+          : `🔄 [超时恢复] 异步任务超时，将在 ${delay}秒后继续查询原任务（第 ${task.retryCount + 1}/${maxRetries} 次）`
       )
     } else {
       // 达到最大重试次数：标记失败并退款（带条件检查）
@@ -266,10 +331,11 @@ async function recoverTimeoutTasks(): Promise<number> {
       logger.error(
         {
           taskId: task.id,
+          taskType: task.type,
           retryCount: task.retryCount,
           maxRetries,
         },
-        '任务超时且达到最大重试次数，已标记失败并退款'
+        `❌ [超时恢复] 任务超时且已达到最大重试次数 (${task.retryCount}/${maxRetries})，已标记失败并退款`
       )
     }
   }

@@ -24,8 +24,9 @@ const conn =
 if (env.NODE_ENV !== 'production') globalForDb.conn = conn
 
 // 合并 schema 和 relations，这样才能使用 Drizzle 的 Relational Query API
-// 在非生产环境启用 SQL 查询日志，方便调试
+// 使用 DB_QUERY_LOGGING 环境变量独立控制 SQL 查询日志
+// 这样可以在开发环境中按需启用/禁用查询日志，而不影响其他日志
 export const db = drizzle(conn, {
   schema: { ...schema, ...relations },
-  logger: env.NODE_ENV !== 'production' ? drizzleLogger : undefined,
+  logger: env.DB_QUERY_LOGGING ? drizzleLogger : undefined,
 })

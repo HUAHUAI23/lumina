@@ -37,7 +37,7 @@ export async function GET() {
         username: user.username,
         email: user.email,
         avatar: user.avatar,
-        credits: account?.balance || 0,
+        balance: account?.balance || 0,
       },
     })
   } catch (error) {

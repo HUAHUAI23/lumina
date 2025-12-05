@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { accounts } from '@/db/schema'
 import { getCurrentSession } from '@/lib/auth/dal'
-import { getTempPath, getTosUrl, isTosConfigured, uploadFile } from '@/lib/tos'
+import { getTempPath, isTosConfigured, uploadFile } from '@/lib/tos'
 
 // 支持的文件类型
 const ALLOWED_TYPES: Record<string, string[]> = {
