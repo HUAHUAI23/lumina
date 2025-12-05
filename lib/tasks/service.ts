@@ -86,11 +86,7 @@ async function create(params: CreateTaskParams) {
 async function cancel(taskId: number): Promise<void> {
   const task = await db.transaction(async (tx) => {
     // 使用 FOR UPDATE 锁定任务行，确保状态检查和更新原子性
-    const [lockedTask] = await tx
-      .select()
-      .from(tasks)
-      .where(eq(tasks.id, taskId))
-      .for('update')
+    const [lockedTask] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).for('update')
 
     if (!lockedTask) {
       throw new TaskNotFoundError(taskId)
@@ -159,10 +155,7 @@ async function list(accountId: number, options: ListTasksOptions = {}): Promise<
     .offset(offset)
 
   // 查询总数
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(tasks)
-    .where(where)
+  const [{ total }] = await db.select({ total: count() }).from(tasks).where(where)
 
   return {
     tasks: taskList,
@@ -170,8 +163,38 @@ async function list(accountId: number, options: ListTasksOptions = {}): Promise<
   }
 }
 
+/**
+ * 获取任务详情（包括输入输出资源）
+ */
+async function get(taskId: number) {
+  const task = await db.query.tasks.findFirst({
+    where: eq(tasks.id, taskId),
+  })
+
+  if (!task) {
+    return null
+  }
+
+  // 获取输入资源
+  const inputs = await db.query.taskResources.findMany({
+    where: and(eq(taskResources.taskId, taskId), eq(taskResources.isInput, true)),
+  })
+
+  // 获取输出资源
+  const outputs = await db.query.taskResources.findMany({
+    where: and(eq(taskResources.taskId, taskId), eq(taskResources.isInput, false)),
+  })
+
+  return {
+    task,
+    inputs,
+    outputs,
+  }
+}
+
 export const taskService = {
   create,
   cancel,
   list,
+  get,
 }
