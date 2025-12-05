@@ -28,6 +28,10 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
   // Config
   const [separateVocal, setSeparateVocal] = useState(true)
   const [useBasicMode, setUseBasicMode] = useState(false)
+  const [openScenedet, setOpenScenedet] = useState(false) // Basic
+  const [alignAudio, setAlignAudio] = useState(true) // Lite
+  const [alignAudioReverse, setAlignAudioReverse] = useState(false) // Lite
+  const [templStartSeconds, setTemplStartSeconds] = useState<number>(0) // Lite
 
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -142,6 +146,14 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
       formData.append('audio', audioFile.file)
       formData.append('separateVocal', separateVocal.toString())
       formData.append('useBasicMode', useBasicMode.toString())
+
+      if (useBasicMode) {
+        formData.append('openScenedet', openScenedet.toString())
+      } else {
+        formData.append('alignAudio', alignAudio.toString())
+        formData.append('alignAudioReverse', alignAudioReverse.toString())
+        formData.append('templStartSeconds', templStartSeconds.toString())
+      }
       // formData.append('alignAudio', 'true') // Default true
 
       const name = videoFile.file.name.split('.')[0]
@@ -255,22 +267,97 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
             />
           </div>
 
-          {/* Basic Mode Toggle */}
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-800/50">
-            <div className="space-y-0.5">
-              <Label className="text-[11px] font-bold text-zinc-300 flex items-center gap-2">
-                Use Basic Mode
-                {useBasicMode ? <Zap className="w-3 h-3 text-amber-500" /> : <RefreshCw className="w-3 h-3 text-emerald-500" />}
-              </Label>
-              <p className="text-[9px] text-zinc-500 font-mono">
-                {useBasicMode ? "High quality (Slower)" : "Standard Lite Mode (Faster)"}
-              </p>
+          {/* Processing Mode Selector */}
+          <div className="space-y-2 pt-2 border-t border-zinc-800/50">
+            <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Processing Mode</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setUseBasicMode(false)}
+                className={`p-2 rounded-sm border text-left transition-all ${!useBasicMode
+                  ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-100 shadow-[0_0_15px_rgba(99,102,241,0.1)]'
+                  : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className={`w-3 h-3 ${!useBasicMode ? 'text-indigo-400' : 'text-zinc-600'}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Lite</span>
+                </div>
+                <div className="text-[8px] font-mono opacity-70">Faster generation, standard quality. Loop optimized.</div>
+              </button>
+
+              <button
+                onClick={() => setUseBasicMode(true)}
+                className={`p-2 rounded-sm border text-left transition-all ${useBasicMode
+                  ? 'bg-amber-500/10 border-amber-500/50 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                  : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
+                  }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <RefreshCw className={`w-3 h-3 ${useBasicMode ? 'text-amber-400' : 'text-zinc-600'}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Basic</span>
+                </div>
+                <div className="text-[8px] font-mono opacity-70">High fidelity, scene detection. Slower process.</div>
+              </button>
             </div>
-            <Switch
-              checked={useBasicMode}
-              onCheckedChange={setUseBasicMode}
-              className="scale-75"
-            />
+          </div>
+
+          {/* Mode-Specific Settings */}
+          <div className="animate-in fade-in slide-in-from-top-1 space-y-3 pt-2 border-t border-zinc-800/50">
+            {useBasicMode ? (
+              // BASIC MODE SETTINGS
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-[11px] font-bold text-zinc-300">Scene Detection</Label>
+                  <p className="text-[9px] text-zinc-500 font-mono">Auto-detect scenes & speakers</p>
+                </div>
+                <Switch
+                  checked={openScenedet}
+                  onCheckedChange={setOpenScenedet}
+                  className="scale-75"
+                />
+              </div>
+            ) : (
+              // LITE MODE SETTINGS
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-[11px] font-bold text-zinc-300">Align Audio Loop</Label>
+                    <p className="text-[9px] text-zinc-500 font-mono">Loop video to match audio length</p>
+                  </div>
+                  <Switch
+                    checked={alignAudio}
+                    onCheckedChange={setAlignAudio}
+                    className="scale-75"
+                  />
+                </div>
+
+                {alignAudio && (
+                  <div className="flex items-center justify-between pl-4 border-l border-zinc-800 ml-1">
+                    <div className="space-y-0.5">
+                      <Label className="text-[11px] font-bold text-zinc-400">Reverse Loop</Label>
+                      <p className="text-[9px] text-zinc-600 font-mono">Boomerang efffect for smoother loops</p>
+                    </div>
+                    <Switch
+                      checked={alignAudioReverse}
+                      onCheckedChange={setAlignAudioReverse}
+                      className="scale-75"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-bold text-zinc-300">Video Start Offset (s)</Label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={templStartSeconds}
+                    onChange={(e) => setTemplStartSeconds(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-black border border-zinc-800 rounded-sm px-2 py-1 text-xs text-white focus:border-indigo-500/50 outline-none font-mono"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

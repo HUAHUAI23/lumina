@@ -296,11 +296,21 @@ const VideoStudio: React.FC = () => {
                       setActiveTask(task.id)
                       setTaskSelectorOpen(false)
                     }}
-                    className={`w-full flex items-center gap-3 p-3.5 hover:bg-zinc-900/50 transition-colors text-left border-b border-zinc-900 last:border-0 ${activeTask === task.id ? 'bg-zinc-900/80' : ''} ${task.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`w-full flex items-center gap-3 p-3.5 transition-colors text-left border-b border-zinc-900 last:border-0 
+                      ${activeTask === task.id ? 'bg-zinc-900/80' : 'hover:bg-zinc-900/50'}
+                      ${task.disabled ? 'cursor-not-allowed' : ''}
+                    `}
                   >
                     <task.icon className={`w-4 h-4 ${activeTask === task.id ? 'text-indigo-400' : 'text-zinc-600'}`} />
                     <div className="flex-1">
-                      <div className={`text-xs font-bold uppercase tracking-wide ${activeTask === task.id ? 'text-white' : 'text-zinc-400'}`}>{task.label}</div>
+                      <div className={`text-xs font-bold uppercase tracking-wide flex items-center gap-2 ${activeTask === task.id ? 'text-white' : 'text-zinc-400'}`}>
+                        {task.label}
+                        {task.disabled && (
+                          <span className="text-[9px] text-amber-500 px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 font-black tracking-widest shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                            COMING SOON
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[9px] text-zinc-600 uppercase tracking-wider">{task.description}</div>
                     </div>
                     {activeTask === task.id && <Check className="w-3 h-3 text-indigo-400 ml-auto" />}

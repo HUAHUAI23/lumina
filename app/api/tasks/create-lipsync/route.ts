@@ -55,11 +55,13 @@ export async function POST(request: NextRequest) {
     const taskName = (formData.get('name') as string) || '视频改口型任务'
 
     // 解析配置参数
+    // 解析配置参数
     const useBasicMode = formData.get('useBasicMode') === 'true'
     const separateVocal = formData.get('separateVocal') === 'true'
     const openScenedet = formData.get('openScenedet') === 'true' // Basic 模式专用
     const alignAudio = formData.get('alignAudio') !== 'false' // 默认 true (Lite 模式)
     const alignAudioReverse = formData.get('alignAudioReverse') === 'true' // Lite 模式专用
+    const templStartSeconds = parseFloat(formData.get('templStartSeconds') as string) || 0 // Lite 模式专用
 
     // 验证必填字段
     if (!videoFile || !audioFile) {
@@ -152,6 +154,12 @@ export async function POST(request: NextRequest) {
       openScenedet: useBasicMode ? openScenedet : undefined,
       alignAudio: !useBasicMode ? alignAudio : undefined, // Only for Lite
       alignAudioReverse: !useBasicMode && alignAudio ? alignAudioReverse : undefined, // Only for Lite with alignAudio
+      templStartSeconds: !useBasicMode ? templStartSeconds : undefined,
+      aigcMeta: {
+        producerId: `gen_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        contentPropagator: 'Lumina-Platform',
+        contentProducer: session.username || `user_${session.userId}`,
+      },
     }
 
     const task = await taskService.create({
