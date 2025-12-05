@@ -11,7 +11,7 @@ import { logger as baseLogger } from '@/lib/logger'
 
 import { handlerRegistry } from './handlers/registry'
 import { providerRegistry } from './providers/registry'
-import { logTask } from './utils/task-logger'
+import { logTask, logTaskSubmitted } from './utils/task-logger'
 import type { Task } from './types'
 
 const logger = baseLogger.child({ module: 'tasks/executor' })
@@ -66,10 +66,7 @@ export async function executeTask(task: Task): Promise<void> {
       where: and(eq(taskResources.taskId, task.id), eq(taskResources.isInput, true)),
     })
 
-    logger.info(
-      { taskId: task.id, inputCount: inputs.length },
-      '📂 [执行器] 已加载输入资源'
-    )
+    logger.info({ taskId: task.id, inputCount: inputs.length }, '📂 [执行器] 已加载输入资源')
 
     // 2. 执行任务
     const result = await provider.execute(task, inputs)
@@ -80,6 +77,7 @@ export async function executeTask(task: Task): Promise<void> {
           taskId: task.id,
           error: result.error,
           errorCode: result.errorCode,
+          requestId: result.requestId,
           retryable: result.retryable,
           retryCount: task.retryCount,
         },
@@ -93,6 +91,7 @@ export async function executeTask(task: Task): Promise<void> {
         error: result.error || '执行失败',
         retryable: result.retryable ?? false,
         errorCode: result.errorCode,
+        requestId: result.requestId,
       })
       return
     }
@@ -117,8 +116,11 @@ export async function executeTask(task: Task): Promise<void> {
         })
         .where(eq(tasks.id, task.id))
 
+      // 记录任务提交成功
+      await logTaskSubmitted(task.id, result.externalTaskId!, result.requestId)
+
       logger.info(
-        { taskId: task.id, externalTaskId: result.externalTaskId },
+        { taskId: task.id, externalTaskId: result.externalTaskId, requestId: result.requestId },
         '✅ [执行器] 异步任务已提交，等待查询循环'
       )
     }
@@ -178,10 +180,7 @@ export async function queryAsyncTask(task: Task): Promise<void> {
       logger.info({ taskId: task.id }, '⏳ [执行器] 任务仍在处理中，更新时间戳')
 
       // 更新 updatedAt，证明任务仍在处理中（防止超时误判）
-      await db
-        .update(tasks)
-        .set({ updatedAt: new Date() })
-        .where(eq(tasks.id, task.id))
+      await db.update(tasks).set({ updatedAt: new Date() }).where(eq(tasks.id, task.id))
       return // 仍在处理中
     }
 
@@ -204,6 +203,7 @@ export async function queryAsyncTask(task: Task): Promise<void> {
         error: result.error || '任务失败',
         retryable: result.retryable ?? false,
         errorCode: result.errorCode,
+        requestId: result.requestId,
       })
       return
     }

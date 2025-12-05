@@ -64,19 +64,24 @@ export class VideoMotionProvider extends BaseProvider {
         '📤 [视频动作模仿] 正在调用火山引擎API提交任务'
       )
 
-      const externalTaskId = await submitMotionTask(imageInput.url, videoInput.url)
+      const result = await submitMotionTask(imageInput.url, videoInput.url)
 
       logger.info(
-        { taskId: _task.id, externalTaskId },
+        {
+          taskId: _task.id,
+          externalTaskId: result.taskId,
+          requestId: result.requestId,
+        },
         '✅ [视频动作模仿] 任务提交成功，已获得外部任务ID'
       )
 
       return {
         success: true,
-        externalTaskId,
+        externalTaskId: result.taskId,
+        requestId: result.requestId,
       }
     } catch (error) {
-      const err = error as Error & { code?: number }
+      const err = error as Error & { code?: number; requestId?: string }
       const retryable = err.code ? isRetryableError(err.code) : true
 
       logger.error(
@@ -84,6 +89,7 @@ export class VideoMotionProvider extends BaseProvider {
           taskId: _task.id,
           error: err.message,
           errorCode: err.code,
+          requestId: err.requestId,
           retryable,
           retryCount: _task.retryCount,
         },
@@ -96,6 +102,7 @@ export class VideoMotionProvider extends BaseProvider {
         success: false,
         error: err.message,
         errorCode: err.code,
+        requestId: err.requestId,
         retryable,
       }
     }
@@ -118,7 +125,7 @@ export class VideoMotionProvider extends BaseProvider {
 
     // 类型检查：确保只处理 video_motion 类型的任务
     const config = task.config
-    if (config.taskType !== 'video_motion') {
+    if (config.taskType !== TaskType.VIDEO_MOTION) {
       logger.error(
         { taskId: task.id, actualType: config.taskType },
         '❌ [视频动作模仿] 任务类型不匹配，此 Provider 只处理 video_motion 类型'
@@ -211,11 +218,14 @@ export class VideoMotionProvider extends BaseProvider {
           {
             type: ResourceType.VIDEO,
             url: result.video_url,
+            metadata: {
+              duration: config.duration,
+            },
           },
         ],
       }
     } catch (error) {
-      const err = error as Error & { code?: number }
+      const err = error as Error & { code?: number; requestId?: string }
       const retryable = err.code ? isRetryableError(err.code) : true
 
       logger.error(
@@ -224,6 +234,7 @@ export class VideoMotionProvider extends BaseProvider {
           externalTaskId: task.externalTaskId,
           error: err.message,
           errorCode: err.code,
+          requestId: err.requestId,
           retryable,
           retryCount: task.retryCount,
         },
@@ -236,6 +247,7 @@ export class VideoMotionProvider extends BaseProvider {
         status: 'failed',
         error: err.message,
         errorCode: err.code,
+        requestId: err.requestId,
         retryable,
       }
     }

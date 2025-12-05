@@ -615,10 +615,36 @@ export interface VideoMotionConfig {
   }
 }
 
-/** 视频口播配置（未实现） */
+/** 视频改口型配置（已实现） */
 export interface VideoLipsyncConfig {
   taskType: 'video_lipsync'
-  [key: string]: unknown
+  duration: number
+  /** 是否使用 Basic 模式，默认 false (Lite) */
+  useBasicMode?: boolean
+  /** 是否启用人声分离，开启后会抑制音频背景杂音，默认 false */
+  separateVocal?: boolean
+  /** 是否开启场景切分与说话人识别（仅 Basic 模式），默认 false */
+  openScenedet?: boolean
+  /** 是否开启视频循环（仅 Lite 模式），默认 true */
+  alignAudio?: boolean
+  /** 是否开启倒放循环（仅 Lite 模式，需同时开启 alignAudio），默认 false */
+  alignAudioReverse?: boolean
+  /** 模板视频开始时间（仅 Lite 模式），默认 0 */
+  templStartSeconds?: number
+  /**
+   * AIGC 隐式标识元数据（用于内容标识和溯源）
+   * 依据《人工智能生成合成内容标识办法》
+   */
+  aigcMeta?: {
+    /** 内容生成服务ID（可选，长度 <= 256字符） */
+    contentProducer?: string
+    /** 内容生成服务商给此视频数据的唯一ID（必选，长度 <= 256字符） */
+    producerId: string
+    /** 内容传播服务商ID（必选，长度 <= 256字符） */
+    contentPropagator: string
+    /** 传播服务商给此视频数据的唯一ID（可选，长度 <= 256字符） */
+    propagateId?: string
+  }
 }
 
 /** 视频生成配置（未实现） */
@@ -674,7 +700,7 @@ export interface BaseMetadata {
   contentType?: string
 }
 
-/** 图片元数据（动作模仿输入） */
+/** 图片元数据 */
 export interface ImageMetadata extends BaseMetadata {
   width?: number
   height?: number
@@ -682,7 +708,7 @@ export interface ImageMetadata extends BaseMetadata {
   mimeType?: string
 }
 
-/** 视频元数据（动作模仿输入和输出） */
+/** 视频元数据 */
 export interface VideoMetadata extends BaseMetadata {
   duration?: number
   width?: number

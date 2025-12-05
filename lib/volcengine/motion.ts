@@ -12,6 +12,11 @@ export interface SubmitTaskData {
   task_id: string
 }
 
+export interface SubmitTaskResult {
+  taskId: string
+  requestId?: string
+}
+
 export interface GetResultData {
   status: MotionTaskStatus
   video_url?: string
@@ -32,7 +37,10 @@ export interface AigcMeta {
   propagate_id?: string
 }
 
-export async function submitMotionTask(imageUrl: string, videoUrl: string): Promise<string> {
+export async function submitMotionTask(
+  imageUrl: string,
+  videoUrl: string
+): Promise<SubmitTaskResult> {
   const response = await request<SubmitTaskData>('CVSync2AsyncSubmitTask', {
     req_key: REQ_KEY,
     image_url: imageUrl,
@@ -40,10 +48,18 @@ export async function submitMotionTask(imageUrl: string, videoUrl: string): Prom
   })
 
   if (!response.data?.task_id) {
-    throw new Error('提交任务成功但未返回 task_id')
+    const error = new Error(
+      `提交任务成功但未返回 task_id${response.request_id ? `，requestId: ${response.request_id}` : ''}`
+    )
+    // 将 requestId 附加到错误对象
+    ;(error as Error & { requestId?: string }).requestId = response.request_id
+    throw error
   }
 
-  return response.data.task_id
+  return {
+    taskId: response.data.task_id,
+    requestId: response.request_id,
+  }
 }
 
 export async function getMotionResult(

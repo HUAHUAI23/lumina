@@ -22,6 +22,8 @@ export interface ProviderExecuteResult {
   error?: string
   errorCode?: number
   retryable?: boolean
+  // 第三方平台请求ID（用于追踪和排查问题）
+  requestId?: string
 }
 
 /** Provider 查询结果 */
@@ -32,6 +34,8 @@ export interface ProviderQueryResult {
   error?: string
   errorCode?: number
   retryable?: boolean
+  // 第三方平台请求ID（用于追踪和排查问题）
+  requestId?: string
 }
 
 /**

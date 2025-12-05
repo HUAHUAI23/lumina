@@ -143,7 +143,7 @@ export abstract class DefaultHandler extends BaseHandler {
    * 默认的失败处理
    */
   async handleFailure(context: FailureContext): Promise<void> {
-    const { task, error, errorCode, retryable } = context
+    const { task, error, errorCode, retryable, requestId } = context
 
     logger.error(
       {
@@ -160,7 +160,7 @@ export abstract class DefaultHandler extends BaseHandler {
     )
 
     // 1. 记录失败日志
-    await logTaskFailed(task.id, error, retryable, errorCode, task.retryCount)
+    await logTaskFailed(task.id, error, retryable, errorCode, task.retryCount, requestId)
 
     const maxRetries = env.TASK_MAX_RETRIES
 
@@ -226,8 +226,12 @@ export abstract class DefaultHandler extends BaseHandler {
           willResubmit: shouldClearExternalId,
         },
         shouldClearExternalId
-          ? `🔄 [Handler] 异步任务提交失败，将在 ${delay}秒后重新提交（第 ${task.retryCount + 1}/${maxRetries} 次）`
-          : `🔄 [Handler] 异步任务查询失败，将在 ${delay}秒后继续查询原任务（第 ${task.retryCount + 1}/${maxRetries} 次）`
+          ? `🔄 [Handler] 异步任务提交失败，将在 ${delay}秒后重新提交（第 ${
+              task.retryCount + 1
+            }/${maxRetries} 次）`
+          : `🔄 [Handler] 异步任务查询失败，将在 ${delay}秒后继续查询原任务（第 ${
+              task.retryCount + 1
+            }/${maxRetries} 次）`
       )
     } else {
       // 标记失败并退款（带条件检查）

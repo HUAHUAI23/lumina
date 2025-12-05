@@ -33,6 +33,20 @@ export async function logTaskCreated(
 }
 
 /**
+ * 记录任务提交到第三方平台成功
+ */
+export async function logTaskSubmitted(
+  taskId: number,
+  externalTaskId: string,
+  requestId?: string
+): Promise<void> {
+  await logTask(taskId, 'info', '任务已提交到第三方平台', {
+    externalTaskId,
+    requestId,
+  })
+}
+
+/**
  * 记录任务完成
  */
 export async function logTaskCompleted(
@@ -56,12 +70,14 @@ export async function logTaskFailed(
   error: string,
   retryable: boolean,
   errorCode?: number,
-  retryCount?: number
+  retryCount?: number,
+  requestId?: string
 ): Promise<void> {
   await logTask(taskId, 'error', error, {
     retryable,
     errorCode,
     retryCount,
+    requestId,
   })
 }
 
