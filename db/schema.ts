@@ -34,7 +34,7 @@ export const verificationChannelEnum = pgEnum('verification_channel', [
 ])
 
 // 任务大类
-export const taskCategoryEnum = pgEnum('task_category', ['video', 'image'])
+export const taskCategoryEnum = pgEnum('task_category', ['video', 'image', 'audio'])
 
 // 任务子类型
 export const taskTypeEnum = pgEnum('task_type', [
@@ -46,6 +46,8 @@ export const taskTypeEnum = pgEnum('task_type', [
   'image_3d_model', // 3D模型生成
   'image_img2img', // 图生图
   'image_txt2img', // 文生图
+  // 音频类
+  'audio_tts', // 文本转语音
 ])
 
 // 任务执行模式
@@ -57,16 +59,8 @@ export const taskStatusEnum = pgEnum('task_status', [
   'processing', // 处理中
   'completed', // 已完成
   'failed', // 失败
-  'partial', // 部分成功（多项任务时部分失败）
+  'partial', // 部分成功（例如一个任务里面有多个步骤，但是只完成了部分，例如图片生成要生成100张但是只生成了88张）
   'cancelled', // 已取消
-])
-
-// 任务项状态
-export const taskItemStatusEnum = pgEnum('task_item_status', [
-  'pending',
-  'processing',
-  'completed',
-  'failed',
 ])
 
 // 计费类型
@@ -671,6 +665,16 @@ export interface ImageTxt2ImgConfig {
   [key: string]: unknown
 }
 
+/** 音频TTS配置（已实现） */
+export interface AudioTtsConfig {
+  duration: number
+  taskType: 'audio_tts'
+  /** 待转换的文本内容 */
+  text: string
+  /** 参考音频文件名（需包含前缀，如 reference_audio/danghong.m4a） */
+  referenceAudio: string
+}
+
 /** 任务配置联合类型 */
 export type TaskConfig =
   | VideoMotionConfig
@@ -679,6 +683,7 @@ export type TaskConfig =
   | Image3DModelConfig
   | ImageImg2ImgConfig
   | ImageTxt2ImgConfig
+  | AudioTtsConfig
 
 // -------------------- 任务结果类型 --------------------
 
@@ -720,5 +725,16 @@ export interface VideoMetadata extends BaseMetadata {
   codec?: string
 }
 
+/** 音频元数据 */
+export interface AudioMetadata extends BaseMetadata {
+  duration?: number
+  size?: number
+  mimeType?: string
+  bitrate?: number
+  codec?: string
+  sampleRate?: number
+  channels?: number
+}
+
 /** 资源元数据联合类型（当前只实现了图片和视频） */
-export type ResourceMetadata = ImageMetadata | VideoMetadata
+export type ResourceMetadata = ImageMetadata | VideoMetadata | AudioMetadata

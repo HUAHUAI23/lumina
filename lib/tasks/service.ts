@@ -9,6 +9,7 @@ import { taskResources, tasks } from '@/db/schema'
 
 import { logTaskCancelled, logTaskCreated } from './utils/task-logger'
 import {
+  calculateAudioEstimatedCost,
   calculateImageEstimatedCost,
   calculateVideoEstimatedCost,
   chargeForTask,
@@ -26,15 +27,33 @@ async function create(params: CreateTaskParams) {
 
   const category = TASK_TYPE_TO_CATEGORY[type]
   const mode = TASK_TYPE_TO_MODE[type]
+
   // 计算预估费用和用量
-  const { cost, estimatedUsage, pricing } =
-    category === TaskCategory.VIDEO
-      ? await calculateVideoEstimatedCost(type, estimatedDuration, estimatedCount)
-      : category === TaskCategory.IMAGE
-      ? await calculateImageEstimatedCost(type, estimatedCount)
-      : (() => {
-          throw new Error(`不支持的任务类别: ${category}`)
-        })()
+  let cost
+  let estimatedUsage
+  let pricing
+
+  switch (category) {
+    case TaskCategory.VIDEO:
+      ;({ cost, estimatedUsage, pricing } = await calculateVideoEstimatedCost(
+        type,
+        estimatedDuration,
+        estimatedCount
+      ))
+      break
+    case TaskCategory.IMAGE:
+      ;({ cost, estimatedUsage, pricing } = await calculateImageEstimatedCost(type, estimatedCount))
+      break
+    case TaskCategory.AUDIO:
+      ;({ cost, estimatedUsage, pricing } = await calculateAudioEstimatedCost(
+        type,
+        estimatedDuration,
+        estimatedCount
+      ))
+      break
+    default:
+      throw new Error(`不支持的任务类别: ${category}`)
+  }
 
   return db.transaction(async (tx) => {
     // 预扣费（会检查余额）

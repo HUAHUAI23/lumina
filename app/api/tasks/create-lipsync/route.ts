@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const videoFile = formData.get('video') as File | null
     const audioFile = formData.get('audio') as File | null
+    const estimatedCount = parseInt(formData.get('estimatedCount') as string) || 1
     const taskName = (formData.get('name') as string) || '视频改口型任务'
 
-    // 解析配置参数
     // 解析配置参数
     const useBasicMode = formData.get('useBasicMode') === 'true'
     const separateVocal = formData.get('separateVocal') === 'true'
@@ -76,11 +76,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 验证数量
+    if (estimatedCount < 1 || estimatedCount > 5) {
+      return NextResponse.json(
+        { success: false, error: '生成数量必须在 1-5 之间' },
+        { status: 400 }
+      )
+    }
+
     logger.info(
       {
         userId: session.userId,
         videoSize: videoFile.size,
         audioSize: audioFile.size,
+        estimatedCount,
         mode: useBasicMode ? 'Basic' : 'Lite',
       },
       '开始创建 video_lipsync 任务'
@@ -135,7 +144,7 @@ export async function POST(request: NextRequest) {
     const audioKey = getTempPath(String(session.userId), uploadId, `audio.${audioExt}`)
     const audioUrl = await uploadFile(audioKey, audioBuffer, { contentType: audioFile.type })
 
-    // 8. 创建任务
+    // 8. 创建任务（循环创建多个独立任务）
     // 计费时长：通常以最终生成视频时长为准。
     // 如果 alignAudio=true (Loop video to match audio)，则时长 = audioDuration
     // 如果 alignAudio=false (Cut audio/video to min duration)，则时长 = min(video, audio)?
@@ -146,72 +155,107 @@ export async function POST(request: NextRequest) {
     // User guide implies: "将视频中的人物口型根据指定的音频输入进行修改"。 Output duration usually matches Audio.
     const taskDuration = audioMetadata.duration
 
-    const config: VideoLipsyncConfig = {
-      taskType: 'video_lipsync',
-      duration: taskDuration,
-      useBasicMode,
-      separateVocal,
-      openScenedet: useBasicMode ? openScenedet : undefined,
-      alignAudio: !useBasicMode ? alignAudio : undefined, // Only for Lite
-      alignAudioReverse: !useBasicMode && alignAudio ? alignAudioReverse : undefined, // Only for Lite with alignAudio
-      templStartSeconds: !useBasicMode ? templStartSeconds : undefined,
-      aigcMeta: {
-        producerId: `gen_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        contentPropagator: 'Lumina-Platform',
-        contentProducer: session.username || `user_${session.userId}`,
+    logger.info(
+      {
+        duration: taskDuration,
+        estimatedCount,
       },
+      `开始创建任务，数量: ${estimatedCount}`
+    )
+
+    const tasks = []
+    let totalEstimatedCost = 0
+
+    // 循环创建 estimatedCount 个独立任务
+    for (let i = 1; i <= estimatedCount; i++) {
+      const taskNameWithIndex =
+        estimatedCount > 1 ? `${taskName} (${i}/${estimatedCount})` : taskName
+
+      const config: VideoLipsyncConfig = {
+        taskType: 'video_lipsync',
+        duration: taskDuration,
+        useBasicMode,
+        separateVocal,
+        openScenedet: useBasicMode ? openScenedet : undefined,
+        alignAudio: !useBasicMode ? alignAudio : undefined, // Only for Lite
+        alignAudioReverse: !useBasicMode && alignAudio ? alignAudioReverse : undefined, // Only for Lite with alignAudio
+        templStartSeconds: !useBasicMode ? templStartSeconds : undefined,
+        aigcMeta: {
+          producerId: `gen_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          contentPropagator: 'Lumina-Platform',
+          contentProducer: session.username || `user_${session.userId}`,
+        },
+      }
+
+      const task = await taskService.create({
+        accountId: account.id,
+        name: taskNameWithIndex,
+        type: TaskType.VIDEO_LIPSYNC,
+        config,
+        inputs: [
+          {
+            type: 'video',
+            url: videoUrl,
+            metadata: {
+              filename: videoFile.name,
+              size: videoFile.size,
+              mimeType: videoFile.type,
+              duration: videoMetadata.duration,
+              width: videoMetadata.width,
+              height: videoMetadata.height,
+            },
+          },
+          {
+            type: 'audio',
+            url: audioUrl,
+            metadata: {
+              filename: audioFile.name,
+              size: audioFile.size,
+              mimeType: audioFile.type,
+              duration: audioMetadata.duration,
+            },
+          },
+        ],
+        estimatedDuration: taskDuration,
+        estimatedCount: 1, // 每个任务只生成 1 个视频
+      })
+
+      tasks.push(task)
+      totalEstimatedCost += task.estimatedCost
+
+      logger.info(
+        {
+          taskId: task.id,
+          index: i,
+          total: estimatedCount,
+          estimatedCost: task.estimatedCost,
+        },
+        `任务 ${i}/${estimatedCount} 创建成功`
+      )
     }
 
-    const task = await taskService.create({
-      accountId: account.id,
-      name: taskName,
-      type: TaskType.VIDEO_LIPSYNC,
-      config,
-      inputs: [
-        {
-          type: 'video',
-          url: videoUrl,
-          metadata: {
-            filename: videoFile.name,
-            size: videoFile.size,
-            mimeType: videoFile.type,
-            duration: videoMetadata.duration,
-            width: videoMetadata.width,
-            height: videoMetadata.height,
-          },
-        },
-        {
-          type: 'audio',
-          url: audioUrl,
-          metadata: {
-            filename: audioFile.name,
-            size: audioFile.size,
-            mimeType: audioFile.type,
-            duration: audioMetadata.duration,
-          },
-        },
-      ],
-      estimatedDuration: taskDuration,
-      estimatedCount: 1,
-    })
-
     logger.info(
-      { taskId: task.id, estimatedCost: task.estimatedCost },
-      'Video Lipsync 任务创建成功'
+      {
+        taskCount: tasks.length,
+        taskIds: tasks.map((t) => t.id),
+        totalEstimatedCost,
+        balance: account.balance,
+      },
+      '所有任务创建完成'
     )
 
     return NextResponse.json({
       success: true,
       data: {
-        task: {
+        tasks: tasks.map((task) => ({
           id: task.id,
           type: task.type,
           name: task.name,
           status: task.status,
           estimatedCost: task.estimatedCost,
           createdAt: task.createdAt,
-        },
-        totalEstimatedCost: task.estimatedCost,
+        })),
+        totalEstimatedCost,
       },
     })
   } catch (error) {

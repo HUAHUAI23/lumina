@@ -1,180 +1,194 @@
-"use client"
+'use client';
 
-import React, { useState } from 'react'
-import { Film, Info, Loader2, Mic, RefreshCw, Wand2, Zap } from 'lucide-react'
+import React, { useState } from 'react';
+import { Film, Info, Layers, Loader2, Mic, RefreshCw, Wand2, Zap } from 'lucide-react';
 
-import FileUpload from '@/components/FileUpload'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { POST } from '@/lib/api-client'
-import type { ApiResponse } from '@/lib/api-response'
-import type { FileWithPreview } from '@/types'
+import FileUpload from '@/components/FileUpload';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { POST } from '@/lib/api-client';
+import type { ApiResponse } from '@/lib/api-response';
+import type { FileWithPreview } from '@/types';
 
 interface VideoLipsyncFormProps {
-  onSuccess?: (taskIds: number[]) => void
-  userBalance: number
+  onSuccess?: (taskIds: number[]) => void;
+  userBalance: number;
 }
 
 interface MediaMetadata {
-  duration: number
-  width?: number
-  height?: number
+  duration: number;
+  width?: number;
+  height?: number;
 }
 
 const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBalance }) => {
-  const [videoFile, setVideoFile] = useState<FileWithPreview | null>(null)
-  const [audioFile, setAudioFile] = useState<FileWithPreview | null>(null)
+  const [videoFile, setVideoFile] = useState<FileWithPreview | null>(null);
+  const [audioFile, setAudioFile] = useState<FileWithPreview | null>(null);
 
   // Config
-  const [separateVocal, setSeparateVocal] = useState(true)
-  const [useBasicMode, setUseBasicMode] = useState(false)
-  const [openScenedet, setOpenScenedet] = useState(false) // Basic
-  const [alignAudio, setAlignAudio] = useState(true) // Lite
-  const [alignAudioReverse, setAlignAudioReverse] = useState(false) // Lite
-  const [templStartSeconds, setTemplStartSeconds] = useState<number>(0) // Lite
+  const [separateVocal, setSeparateVocal] = useState(true);
+  const [useBasicMode, setUseBasicMode] = useState(false);
+  const [openScenedet, setOpenScenedet] = useState(false); // Basic
+  const [alignAudio, setAlignAudio] = useState(true); // Lite
+  const [alignAudioReverse, setAlignAudioReverse] = useState(false); // Lite
+  const [templStartSeconds, setTemplStartSeconds] = useState<number>(0); // Lite
+  const [estimatedCount, setEstimatedCount] = useState<number>(1);
 
-  const [isCreating, setIsCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // 元数据
-  const [videoMetadata, setVideoMetadata] = useState<MediaMetadata | null>(null)
-  const [audioMetadata, setAudioMetadata] = useState<MediaMetadata | null>(null)
+  const [videoMetadata, setVideoMetadata] = useState<MediaMetadata | null>(null);
+  const [audioMetadata, setAudioMetadata] = useState<MediaMetadata | null>(null);
 
   // 费用预估
-  const [estimatedCost, setEstimatedCost] = useState<number>(0)
+  const [estimatedCost, setEstimatedCost] = useState<number>(0);
 
   // 提取视频元数据
   const extractVideoMetadata = (file: File): Promise<MediaMetadata> => {
     return new Promise((resolve, reject) => {
-      const video = document.createElement('video')
-      video.preload = 'metadata'
+      const video = document.createElement('video');
+      video.preload = 'metadata';
       video.onloadedmetadata = () => {
-        URL.revokeObjectURL(video.src)
+        URL.revokeObjectURL(video.src);
         resolve({
           duration: Math.ceil(video.duration),
           width: video.videoWidth,
           height: video.videoHeight,
-        })
-      }
+        });
+      };
       video.onerror = () => {
-        URL.revokeObjectURL(video.src)
-        reject(new Error('无法读取视频元数据'))
-      }
-      video.src = URL.createObjectURL(file)
-    })
-  }
+        URL.revokeObjectURL(video.src);
+        reject(new Error('无法读取视频元数据'));
+      };
+      video.src = URL.createObjectURL(file);
+    });
+  };
 
   // 提取音频元数据
   const extractAudioMetadata = (file: File): Promise<MediaMetadata> => {
     return new Promise((resolve, reject) => {
-      const audio = document.createElement('audio')
-      audio.preload = 'metadata'
+      const audio = document.createElement('audio');
+      audio.preload = 'metadata';
       audio.onloadedmetadata = () => {
-        URL.revokeObjectURL(audio.src)
+        URL.revokeObjectURL(audio.src);
         resolve({
           duration: Math.ceil(audio.duration),
-        })
-      }
+        });
+      };
       audio.onerror = () => {
-        URL.revokeObjectURL(audio.src)
-        reject(new Error('无法读取音频元数据'))
-      }
-      audio.src = URL.createObjectURL(file)
-    })
-  }
+        URL.revokeObjectURL(audio.src);
+        reject(new Error('无法读取音频元数据'));
+      };
+      audio.src = URL.createObjectURL(file);
+    });
+  };
 
   // 处理视频选择
   const handleVideoSelect = async (file: FileWithPreview) => {
-    setVideoFile(file)
-    setError(null)
+    setVideoFile(file);
+    setError(null);
     try {
-      const metadata = await extractVideoMetadata(file.file)
-      setVideoMetadata(metadata)
-      updateEstimatedCost(metadata, audioMetadata)
+      const metadata = await extractVideoMetadata(file.file);
+      setVideoMetadata(metadata);
+      updateEstimatedCost(metadata, audioMetadata, estimatedCount);
     } catch (err) {
-      console.error('提取视频元数据失败:', err)
-      setError('无法读取视频信息，请确保文件格式正确')
+      console.error('提取视频元数据失败:', err);
+      setError('无法读取视频信息，请确保文件格式正确');
     }
-  }
+  };
 
   // 处理音频选择
   const handleAudioSelect = async (file: FileWithPreview) => {
-    setAudioFile(file)
-    setError(null)
+    setAudioFile(file);
+    setError(null);
     try {
-      const metadata = await extractAudioMetadata(file.file)
-      setAudioMetadata(metadata)
-      updateEstimatedCost(videoMetadata, metadata)
+      const metadata = await extractAudioMetadata(file.file);
+      setAudioMetadata(metadata);
+      updateEstimatedCost(videoMetadata, metadata, estimatedCount);
     } catch (err) {
-      console.error('提取音频元数据失败:', err)
-      setError('无法读取音频信息，请确保文件格式正确')
+      console.error('提取音频元数据失败:', err);
+      setError('无法读取音频信息，请确保文件格式正确');
     }
-  }
+  };
 
   // 更新费用预估
-  const updateEstimatedCost = (videoMeta: MediaMetadata | null, audioMeta: MediaMetadata | null) => {
+  const updateEstimatedCost = (
+    videoMeta: MediaMetadata | null,
+    audioMeta: MediaMetadata | null,
+    count: number
+  ) => {
     // 假设费用主要由生成时长决定，生成时长约为音频时长
     // 暂定每秒 10 分
     if (audioMeta) {
-      const duration = audioMeta.duration
+      const duration = audioMeta.duration;
       // 简单预估
-      const cost = Math.ceil(duration * 10)
-      setEstimatedCost(cost)
+      const cost = Math.ceil(duration * 10) * count;
+      setEstimatedCost(cost);
     } else {
-      setEstimatedCost(0)
+      setEstimatedCost(0);
     }
-  }
+  };
+
+  const handleCountChange = (count: number) => {
+    setEstimatedCount(count);
+    updateEstimatedCost(videoMetadata, audioMetadata, count);
+  };
 
   // 创建任务
   const handleSubmit = async () => {
     if (!videoFile || !audioFile) {
-      setError('请上传视频和音频')
-      return
+      setError('请上传视频和音频');
+      return;
     }
 
     if (userBalance < estimatedCost) {
-      setError(`余额不足，当前余额: ${userBalance / 100} 元，预估费用: ${estimatedCost / 100} 元`)
-      return
+      setError(`余额不足，当前余额: ${userBalance / 100} 元，预估费用: ${estimatedCost / 100} 元`);
+      return;
     }
 
-    setError(null)
-    setIsCreating(true)
+    setError(null);
+    setIsCreating(true);
 
     try {
-      const formData = new FormData()
-      formData.append('video', videoFile.file)
-      formData.append('audio', audioFile.file)
-      formData.append('separateVocal', separateVocal.toString())
-      formData.append('useBasicMode', useBasicMode.toString())
+      const formData = new FormData();
+      formData.append('video', videoFile.file);
+      formData.append('audio', audioFile.file);
+      formData.append('estimatedCount', estimatedCount.toString());
+      formData.append('separateVocal', separateVocal.toString());
+      formData.append('useBasicMode', useBasicMode.toString());
 
       if (useBasicMode) {
-        formData.append('openScenedet', openScenedet.toString())
+        formData.append('openScenedet', openScenedet.toString());
       } else {
-        formData.append('alignAudio', alignAudio.toString())
-        formData.append('alignAudioReverse', alignAudioReverse.toString())
-        formData.append('templStartSeconds', templStartSeconds.toString())
+        formData.append('alignAudio', alignAudio.toString());
+        formData.append('alignAudioReverse', alignAudioReverse.toString());
+        formData.append('templStartSeconds', templStartSeconds.toString());
       }
       // formData.append('alignAudio', 'true') // Default true
 
-      const name = videoFile.file.name.split('.')[0]
-      formData.append('name', `改口型 - ${name}`)
+      const name = videoFile.file.name.split('.')[0];
+      formData.append('name', `改口型 - ${name}`);
 
-      const taskResponse = await POST<ApiResponse<{ task: { id: number } }>>('/api/tasks/create-lipsync', formData)
+      const taskResponse = await POST<ApiResponse<{ task: { id: number } }>>(
+        '/api/tasks/create-lipsync',
+        formData
+      );
 
       if (!taskResponse.success) {
-        throw new Error(taskResponse.error)
+        throw new Error(taskResponse.error);
       }
 
-      onSuccess?.([taskResponse.data.task.id])
+      onSuccess?.([taskResponse.data.task.id]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : '创建任务失败'
-      setError(message)
+      const message = err instanceof Error ? err.message : '创建任务失败';
+      setError(message);
     } finally {
-      setIsCreating(false)
+      setIsCreating(false);
     }
-  }
+  };
 
-  const canSubmit = videoFile && audioFile && !isCreating
+  const canSubmit = videoFile && audioFile && !isCreating;
 
   return (
     <div className="space-y-6">
@@ -201,16 +215,18 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
           selectedFile={videoFile}
           onFileSelect={handleVideoSelect}
           onRemove={() => {
-            setVideoFile(null)
-            setVideoMetadata(null)
-            updateEstimatedCost(null, audioMetadata)
+            setVideoFile(null);
+            setVideoMetadata(null);
+            updateEstimatedCost(null, audioMetadata, estimatedCount);
           }}
         />
         {videoMetadata && (
           <div className="p-2 bg-zinc-900/30 border border-zinc-800 rounded-sm text-[10px] font-mono text-zinc-400">
             <div className="flex gap-4">
               <span>时长: {videoMetadata.duration}s</span>
-              <span>尺寸: {videoMetadata.width}x{videoMetadata.height}</span>
+              <span>
+                尺寸: {videoMetadata.width}x{videoMetadata.height}
+              </span>
             </div>
           </div>
         )}
@@ -232,9 +248,9 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
           selectedFile={audioFile}
           onFileSelect={handleAudioSelect}
           onRemove={() => {
-            setAudioFile(null)
-            setAudioMetadata(null)
-            updateEstimatedCost(videoMetadata, null)
+            setAudioFile(null);
+            setAudioMetadata(null);
+            updateEstimatedCost(videoMetadata, null, estimatedCount);
           }}
           className="h-24"
         />
@@ -254,11 +270,40 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
         </label>
 
         <div className="space-y-3 p-3 bg-zinc-900/20 border border-zinc-900 rounded-sm">
+          {/* Generation Count */}
+          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+            <div className="space-y-0.5">
+              <Label className="text-[11px] font-bold text-zinc-300 flex items-center gap-2">
+                <Layers className="w-3 h-3 text-zinc-500" />
+                Batch Size
+              </Label>
+              <p className="text-[9px] text-zinc-500 font-mono">Number of variations to generate</p>
+            </div>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => handleCountChange(n)}
+                  className={`w-6 h-6 flex items-center justify-center rounded-sm text-[10px] font-bold font-mono transition-all
+                     ${
+                       estimatedCount === n
+                         ? 'bg-zinc-100 text-black shadow-[0_0_10px_rgba(255,255,255,0.2)]'
+                         : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                     }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Separate Vocal */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label className="text-[11px] font-bold text-zinc-300">Separate Vocals</Label>
-              <p className="text-[9px] text-zinc-500 font-mono">Isolate voice from background noise</p>
+              <p className="text-[9px] text-zinc-500 font-mono">
+                Isolate voice from background noise
+              </p>
             </div>
             <Switch
               checked={separateVocal}
@@ -269,34 +314,46 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
 
           {/* Processing Mode Selector */}
           <div className="space-y-2 pt-2 border-t border-zinc-800/50">
-            <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Processing Mode</Label>
+            <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              Processing Mode
+            </Label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setUseBasicMode(false)}
-                className={`p-2 rounded-sm border text-left transition-all ${!useBasicMode
-                  ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-100 shadow-[0_0_15px_rgba(99,102,241,0.1)]'
-                  : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
-                  }`}
+                className={`p-2 rounded-sm border text-left transition-all ${
+                  !useBasicMode
+                    ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-100 shadow-[0_0_15px_rgba(99,102,241,0.1)]'
+                    : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
+                }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <Zap className={`w-3 h-3 ${!useBasicMode ? 'text-indigo-400' : 'text-zinc-600'}`} />
+                  <Zap
+                    className={`w-3 h-3 ${!useBasicMode ? 'text-indigo-400' : 'text-zinc-600'}`}
+                  />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Lite</span>
                 </div>
-                <div className="text-[8px] font-mono opacity-70">Faster generation, standard quality. Loop optimized.</div>
+                <div className="text-[8px] font-mono opacity-70">
+                  Faster generation, standard quality. Loop optimized.
+                </div>
               </button>
 
               <button
                 onClick={() => setUseBasicMode(true)}
-                className={`p-2 rounded-sm border text-left transition-all ${useBasicMode
-                  ? 'bg-amber-500/10 border-amber-500/50 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
-                  : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
-                  }`}
+                className={`p-2 rounded-sm border text-left transition-all ${
+                  useBasicMode
+                    ? 'bg-amber-500/10 border-amber-500/50 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                    : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
+                }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <RefreshCw className={`w-3 h-3 ${useBasicMode ? 'text-amber-400' : 'text-zinc-600'}`} />
+                  <RefreshCw
+                    className={`w-3 h-3 ${useBasicMode ? 'text-amber-400' : 'text-zinc-600'}`}
+                  />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Basic</span>
                 </div>
-                <div className="text-[8px] font-mono opacity-70">High fidelity, scene detection. Slower process.</div>
+                <div className="text-[8px] font-mono opacity-70">
+                  High fidelity, scene detection. Slower process.
+                </div>
               </button>
             </div>
           </div>
@@ -308,7 +365,9 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label className="text-[11px] font-bold text-zinc-300">Scene Detection</Label>
-                  <p className="text-[9px] text-zinc-500 font-mono">Auto-detect scenes & speakers</p>
+                  <p className="text-[9px] text-zinc-500 font-mono">
+                    Auto-detect scenes & speakers
+                  </p>
                 </div>
                 <Switch
                   checked={openScenedet}
@@ -322,7 +381,9 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label className="text-[11px] font-bold text-zinc-300">Align Audio Loop</Label>
-                    <p className="text-[9px] text-zinc-500 font-mono">Loop video to match audio length</p>
+                    <p className="text-[9px] text-zinc-500 font-mono">
+                      Loop video to match audio length
+                    </p>
                   </div>
                   <Switch
                     checked={alignAudio}
@@ -335,7 +396,9 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
                   <div className="flex items-center justify-between pl-4 border-l border-zinc-800 ml-1">
                     <div className="space-y-0.5">
                       <Label className="text-[11px] font-bold text-zinc-400">Reverse Loop</Label>
-                      <p className="text-[9px] text-zinc-600 font-mono">Boomerang efffect for smoother loops</p>
+                      <p className="text-[9px] text-zinc-600 font-mono">
+                        Boomerang efffect for smoother loops
+                      </p>
                     </div>
                     <Switch
                       checked={alignAudioReverse}
@@ -346,7 +409,9 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
                 )}
 
                 <div className="space-y-1">
-                  <Label className="text-[11px] font-bold text-zinc-300">Video Start Offset (s)</Label>
+                  <Label className="text-[11px] font-bold text-zinc-300">
+                    Video Start Offset (s)
+                  </Label>
                   <input
                     type="number"
                     min={0}
@@ -409,6 +474,10 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
                   <span>UNIT_PRICE</span>
                   <span>0.10 ¥/s</span>
                 </div>
+                <div className="flex justify-between text-[9px] text-zinc-400 font-mono">
+                  <span>COUNT</span>
+                  <span>{estimatedCount}</span>
+                </div>
                 <div className="flex justify-between text-[9px] font-bold text-emerald-500 pt-2 border-t border-zinc-800 mt-1 font-mono">
                   <span>TOTAL_EST</span>
                   <span>{(estimatedCost / 100).toFixed(2)} ¥</span>
@@ -419,7 +488,7 @@ const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBala
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default VideoLipsyncForm
+export default VideoLipsyncForm;

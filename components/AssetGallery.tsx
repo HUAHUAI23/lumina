@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import {
   Activity,
   Download,
@@ -11,70 +11,70 @@ import {
   MoreVertical,
   Play,
   RefreshCw,
-} from 'lucide-react'
+} from 'lucide-react';
 
-import MediaViewer from '@/components/MediaViewer'
-import { GET } from '@/lib/api-client'
-import type { ApiResponse } from '@/lib/api-response'
-import { TaskType } from '@/types'
+import MediaViewer from '@/components/MediaViewer';
+import { GET } from '@/lib/api-client';
+import type { ApiResponse } from '@/lib/api-response';
+import { TaskType } from '@/types';
 
 interface MediaResource {
-  type: 'image' | 'video' | 'audio'
-  url: string
+  type: 'image' | 'video' | 'audio';
+  url: string;
   metadata?: {
-    width?: number
-    height?: number
-    duration?: number
-    size?: number
-    mimeType?: string
-  }
+    width?: number;
+    height?: number;
+    duration?: number;
+    size?: number;
+    mimeType?: string;
+  };
 }
 
 interface Task {
-  id: number
-  type: string
-  name: string
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
-  estimatedCost: number
-  actualCost?: number | null
-  createdAt: string
-  completedAt?: string | null
+  id: number;
+  type: string;
+  name: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  estimatedCost: number;
+  actualCost?: number | null;
+  createdAt: string;
+  completedAt?: string | null;
 }
 
 interface TasksResponse {
-  tasks: Task[]
+  tasks: Task[];
   pagination: {
-    total: number
-    limit: number
-    offset: number
-  }
+    total: number;
+    limit: number;
+    offset: number;
+  };
 }
 
 interface TaskDetail {
-  id: number
-  type: string
-  name: string
-  status: string
-  outputs: MediaResource[]
+  id: number;
+  type: string;
+  name: string;
+  status: string;
+  outputs: MediaResource[];
 }
 
 interface AssetGalleryProps {
   /**
    * 可选的任务类型过滤器，如果提供则只显示这些类型的任务
    */
-  filterTypes?: TaskType[]
+  filterTypes?: TaskType[];
   /**
    * 自动刷新间隔（毫秒），默认 10 秒
    */
-  refreshInterval?: number
+  refreshInterval?: number;
   /**
    * 显示的任务数量限制，默认 20
    */
-  limit?: number
+  limit?: number;
   /**
    * 高亮显示的任务 ID（可选）
    */
-  highlightTaskId?: number | null
+  highlightTaskId?: number | null;
 }
 
 const AssetGallery: React.FC<AssetGalleryProps> = ({
@@ -83,27 +83,27 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
   limit = 20,
   highlightTaskId,
 }) => {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // MediaViewer 状态
   const [selectedMedia, setSelectedMedia] = useState<{
-    resource: MediaResource
-    taskName: string
-  } | null>(null)
-  const [isViewerOpen, setIsViewerOpen] = useState(false)
+    resource: MediaResource;
+    taskName: string;
+  } | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   // 任务详情缓存（包含输出资源）
-  const [taskDetails, setTaskDetails] = useState<Record<number, TaskDetail>>({})
+  const [taskDetails, setTaskDetails] = useState<Record<number, TaskDetail>>({});
 
   // 获取任务列表
   const fetchTasks = React.useCallback(
     async (isRefresh = false) => {
       if (isRefresh) {
-        setIsRefreshing(true)
+        setIsRefreshing(true);
       } else {
-        setIsLoading(true)
+        setIsLoading(true);
       }
 
       try {
@@ -112,66 +112,66 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
             limit,
             offset: 0,
           },
-        })
+        });
 
         if (response.success) {
-          let fetchedTasks = response.data.tasks
+          let fetchedTasks = response.data.tasks;
 
           // 如果提供了 filterTypes，则过滤任务
           if (filterTypes && filterTypes.length > 0) {
             fetchedTasks = fetchedTasks.filter((task) =>
               filterTypes.includes(task.type as TaskType)
-            )
+            );
           }
 
-          setTasks(fetchedTasks)
+          setTasks(fetchedTasks);
 
           // 自动获取已完成任务的详情（用于显示缩略图）
           // 使用 Promise.all 批量加载，避免阻塞渲染
           if (!isRefresh) {
-            const completedTasks = fetchedTasks.filter((t) => t.status === 'completed')
+            const completedTasks = fetchedTasks.filter((t) => t.status === 'completed');
             Promise.all(
               completedTasks.slice(0, 5).map(async (task) => {
                 try {
-                  const res = await GET<ApiResponse<TaskDetail>>(`/api/tasks/${task.id}`)
+                  const res = await GET<ApiResponse<TaskDetail>>(`/api/tasks/${task.id}`);
                   if (res.success && res.data) {
                     setTaskDetails((prev) => ({
                       ...prev,
                       [task.id]: res.data,
-                    }))
+                    }));
                   }
                 } catch (err) {
-                  console.error(`Failed to fetch detail for task ${task.id}:`, err)
+                  console.error(`Failed to fetch detail for task ${task.id}:`, err);
                 }
               })
-            )
+            );
           }
         }
       } catch (error) {
-        console.error('Failed to fetch tasks:', error)
+        console.error('Failed to fetch tasks:', error);
       } finally {
-        setIsLoading(false)
-        setIsRefreshing(false)
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
     },
     [limit, filterTypes]
-  )
+  );
 
   // 初始加载
   useEffect(() => {
-    fetchTasks()
-  }, [fetchTasks])
+    fetchTasks();
+  }, [fetchTasks]);
 
   // 自动刷新
   useEffect(() => {
     if (refreshInterval > 0) {
       const interval = setInterval(() => {
-        fetchTasks(true)
-      }, refreshInterval)
+        fetchTasks(true);
+      }, refreshInterval);
 
-      return () => clearInterval(interval)
+      return () => clearInterval(interval);
     }
-  }, [refreshInterval, fetchTasks])
+  }, [refreshInterval, fetchTasks]);
 
   // 获取任务信息
   const getTaskInfo = (taskType: string) => {
@@ -183,7 +183,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           color: 'text-indigo-400',
           bg: 'bg-indigo-500/10',
           border: 'border-indigo-500/20',
-        }
+        };
       case TaskType.VIDEO_LIPSYNC:
         return {
           label: 'LIP_SYNC',
@@ -191,7 +191,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           color: 'text-purple-400',
           bg: 'bg-purple-500/10',
           border: 'border-purple-500/20',
-        }
+        };
       case TaskType.VIDEO_GENERATION:
         return {
           label: 'GEN_VIDEO',
@@ -199,7 +199,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           color: 'text-blue-400',
           bg: 'bg-blue-500/10',
           border: 'border-blue-500/20',
-        }
+        };
       case TaskType.IMAGE_TXT2IMG:
         return {
           label: 'TXT_2_IMG',
@@ -207,7 +207,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           color: 'text-emerald-400',
           bg: 'bg-emerald-500/10',
           border: 'border-emerald-500/20',
-        }
+        };
       case TaskType.IMAGE_IMG2IMG:
         return {
           label: 'IMG_2_IMG',
@@ -215,7 +215,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           color: 'text-teal-400',
           bg: 'bg-teal-500/10',
           border: 'border-teal-500/20',
-        }
+        };
       case TaskType.IMAGE_3D_MODEL:
         return {
           label: '3D_MODEL',
@@ -223,7 +223,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           color: 'text-cyan-400',
           bg: 'bg-cyan-500/10',
           border: 'border-cyan-500/20',
-        }
+        };
       default:
         return {
           label: 'UNKNOWN',
@@ -231,71 +231,71 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           color: 'text-zinc-400',
           bg: 'bg-zinc-500/10',
           border: 'border-zinc-500/20',
-        }
+        };
     }
-  }
+  };
 
   // 获取任务详情（包含输出资源）
   const fetchTaskDetail = async (taskId: number) => {
     // 如果已经缓存，直接返回
     if (taskDetails[taskId]) {
-      return taskDetails[taskId]
+      return taskDetails[taskId];
     }
 
     try {
-      const response = await GET<ApiResponse<TaskDetail>>(`/api/tasks/${taskId}`)
+      const response = await GET<ApiResponse<TaskDetail>>(`/api/tasks/${taskId}`);
       if (response.success && response.data) {
         setTaskDetails((prev) => ({
           ...prev,
           [taskId]: response.data,
-        }))
-        return response.data
+        }));
+        return response.data;
       }
     } catch (error) {
-      console.error(`Failed to fetch task detail for ${taskId}:`, error)
+      console.error(`Failed to fetch task detail for ${taskId}:`, error);
     }
-    return null
-  }
+    return null;
+  };
 
   // 处理任务卡片点击 - 获取输出资源并播放
   const handleTaskClick = async (task: Task) => {
-    console.log('[AssetGallery] Task clicked:', task)
+    console.log('[AssetGallery] Task clicked:', task);
 
     // 只有 completed 状态的任务才能查看输出
     if (task.status !== 'completed') {
-      console.log('[AssetGallery] Task not completed, status:', task.status)
-      return
+      console.log('[AssetGallery] Task not completed, status:', task.status);
+      return;
     }
 
-    const detail = await fetchTaskDetail(task.id)
-    console.log('[AssetGallery] Task detail fetched:', detail)
+    const detail = await fetchTaskDetail(task.id);
+    console.log('[AssetGallery] Task detail fetched:', detail);
 
     if (detail && detail.outputs && detail.outputs.length > 0) {
       // 打开第一个输出资源
-      const firstOutput = detail.outputs[0]
-      console.log('[AssetGallery] Opening viewer with output:', firstOutput)
+      const firstOutput = detail.outputs[0];
+      console.log('[AssetGallery] Opening viewer with output:', firstOutput);
 
       setSelectedMedia({
         resource: firstOutput,
         taskName: task.name,
-      })
-      setIsViewerOpen(true)
+      });
+      setIsViewerOpen(true);
     } else {
-      console.log('[AssetGallery] No outputs found for task:', task.id)
+      console.log('[AssetGallery] No outputs found for task:', task.id);
     }
-  }
+  };
 
   // 格式化时间
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diff < 60) return `${diff}S AGO`
-    if (diff < 3600) return `${Math.floor(diff / 60)}M AGO`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}H AGO`
-    return `${Math.floor(diff / 86400)}D AGO`
-  }
+    if (diff < 60) return `${diff}S AGO`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}M AGO`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}H AGO`;
+    return `${Math.floor(diff / 86400)}D AGO`;
+  };
 
   // 加载状态
   if (isLoading) {
@@ -308,19 +308,20 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
         <div className="text-center space-y-6 relative z-10">
           <div className="relative w-24 h-24 mx-auto">
             <div className="absolute inset-0 border-4 border-white/5 border-t-indigo-500 rounded-full animate-spin"></div>
-            <div className="absolute inset-2 border-4 border-white/5 border-t-indigo-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+            <div
+              className="absolute inset-2 border-4 border-white/5 border-t-indigo-400 rounded-full animate-spin"
+              style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}
+            ></div>
           </div>
           <div className="space-y-2">
-            <p className="text-xs font-bold text-white uppercase tracking-widest">
-              Loading Assets
-            </p>
+            <p className="text-xs font-bold text-white uppercase tracking-widest">Loading Assets</p>
             <p className="text-[10px] text-zinc-500 font-mono">
               Initializing production database...
             </p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // 空状态
@@ -338,16 +339,14 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
             <Film className="w-16 h-16 text-zinc-600 relative z-10" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-light text-white tracking-tight">
-              No Productions Yet
-            </h3>
+            <h3 className="text-lg font-light text-white tracking-tight">No Productions Yet</h3>
             <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider">
               Start Creating To See Results Here
             </p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -375,7 +374,9 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
           title="Refresh"
         >
           <RefreshCw
-            className={`w-3.5 h-3.5 text-zinc-500 group-hover:text-indigo-400 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+            className={`w-3.5 h-3.5 text-zinc-500 group-hover:text-indigo-400 transition-colors ${
+              isRefreshing ? 'animate-spin' : ''
+            }`}
           />
         </button>
       </div>
@@ -383,12 +384,12 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
       {/* Asset List */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 relative z-10 scroll-smooth">
         {tasks.map((task) => {
-          const taskInfo = getTaskInfo(task.type)
-          const isHighlighted = highlightTaskId === task.id
+          const taskInfo = getTaskInfo(task.type);
+          const isHighlighted = highlightTaskId === task.id;
 
-          const detail = taskDetails[task.id]
-          const hasOutput = detail && detail.outputs && detail.outputs.length > 0
-          const firstOutput = hasOutput ? detail.outputs[0] : null
+          const detail = taskDetails[task.id];
+          const hasOutput = detail && detail.outputs && detail.outputs.length > 0;
+          const firstOutput = hasOutput ? detail.outputs[0] : null;
 
           return (
             <div
@@ -397,9 +398,11 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
               className={`
                 relative group rounded-xl p-3 border transition-all duration-300 overflow-hidden
                 ${task.status === 'completed' ? 'cursor-pointer' : 'cursor-default'}
-                ${isHighlighted
-                  ? 'bg-white/5 border-indigo-500/50 shadow-[0_0_30px_rgba(99,102,241,0.2)]'
-                  : 'bg-zinc-900/30 border-white/5 hover:bg-white/5 hover:border-white/10'}
+                ${
+                  isHighlighted
+                    ? 'bg-white/5 border-indigo-500/50 shadow-[0_0_30px_rgba(99,102,241,0.2)]'
+                    : 'bg-zinc-900/30 border-white/5 hover:bg-white/5 hover:border-white/10'
+                }
               `}
             >
               {/* Highlight Indicator */}
@@ -459,7 +462,9 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
                           {/* Video Duration Badge */}
                           <div className="absolute bottom-1 right-1 bg-black/80 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-mono text-white flex items-center gap-1">
                             <Film className="w-2 h-2" />
-                            {firstOutput.metadata?.duration ? `${Math.round(firstOutput.metadata.duration)}s` : 'VIDEO'}
+                            {firstOutput.metadata?.duration
+                              ? `${Math.round(firstOutput.metadata.duration)}s`
+                              : 'VIDEO'}
                           </div>
                         </>
                       )}
@@ -493,10 +498,10 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
                         task.status === 'processing'
                           ? 'text-amber-400'
                           : task.status === 'completed'
-                            ? 'text-emerald-400'
-                            : task.status === 'failed'
-                              ? 'text-red-400'
-                              : 'text-zinc-500'
+                          ? 'text-emerald-400'
+                          : task.status === 'failed'
+                          ? 'text-red-400'
+                          : 'text-zinc-500'
                       }`}
                     >
                       {task.status === 'processing' ? (
@@ -528,7 +533,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
                   <div className="flex flex-col justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
+                        e.stopPropagation();
                         // Download logic
                       }}
                       className="p-1.5 hover:bg-indigo-500/20 rounded-lg text-zinc-500 hover:text-indigo-400 transition-colors"
@@ -538,7 +543,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
                     </button>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
+                        e.stopPropagation();
                         // More options
                       }}
                       className="p-1.5 hover:bg-zinc-700 rounded-lg text-zinc-500 hover:text-white transition-colors"
@@ -550,7 +555,7 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
                 )}
               </div>
             </div>
-          )
+          );
         })}
       </div>
 
@@ -558,14 +563,14 @@ const AssetGallery: React.FC<AssetGalleryProps> = ({
       <MediaViewer
         isOpen={isViewerOpen}
         onClose={() => {
-          setIsViewerOpen(false)
-          setSelectedMedia(null)
+          setIsViewerOpen(false);
+          setSelectedMedia(null);
         }}
         resource={selectedMedia?.resource || null}
         taskName={selectedMedia?.taskName}
       />
     </div>
-  )
-}
+  );
+};
 
-export default AssetGallery
+export default AssetGallery;

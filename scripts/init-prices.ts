@@ -62,6 +62,28 @@ async function initPrices() {
       )
     }
 
+    // Audio TTS pricing
+    const audioTtsExists = await db.query.pricing.findFirst({
+      where: eq(pricing.taskType, TaskType.AUDIO_TTS),
+    })
+
+    if (!audioTtsExists) {
+      await db.insert(pricing).values({
+        taskType: TaskType.AUDIO_TTS,
+        billingType: BillingType.PER_UNIT,
+        unitPrice,
+        unit,
+        minUnit,
+      })
+      console.log(
+        `✓ Created audio_tts pricing: ${unitPrice} cents per ${unit}, min ${minUnit} ${unit}`
+      )
+    } else {
+      console.log(
+        `✓ audio_tts pricing already exists: ${audioTtsExists.unitPrice} cents per ${audioTtsExists.unit}`
+      )
+    }
+
     console.log('\n✓ Price initialization completed successfully')
     process.exit(0)
   } catch (error) {

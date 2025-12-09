@@ -314,8 +314,12 @@ async function recoverTimeoutTasks(): Promise<number> {
           willResubmit: shouldClearExternalId,
         },
         task.mode === TaskMode.SYNC
-          ? `🔄 [超时恢复] 同步任务超时，将在 ${delay}秒后重新执行（第 ${task.retryCount + 1}/${maxRetries} 次）`
-          : `🔄 [超时恢复] 异步任务超时，将在 ${delay}秒后继续查询原任务（第 ${task.retryCount + 1}/${maxRetries} 次）`
+          ? `🔄 [超时恢复] 同步任务超时，将在 ${delay}秒后重新执行（第 ${
+              task.retryCount + 1
+            }/${maxRetries} 次）`
+          : `🔄 [超时恢复] 异步任务超时，将在 ${delay}秒后继续查询原任务（第 ${
+              task.retryCount + 1
+            }/${maxRetries} 次）`
       )
     } else {
       // 达到最大重试次数：标记失败并退款（带条件检查）
