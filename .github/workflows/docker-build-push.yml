@@ -94,8 +94,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/image-generation
-            ${{ env.DOCKERHUB_USERNAME && format('docker.io/{0}/image-generation', env.DOCKERHUB_USERNAME) || '' }}
+            ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/lumina
+            ${{ env.DOCKERHUB_USERNAME && format('docker.io/{0}/lumina', env.DOCKERHUB_USERNAME) || '' }}
 
       - name: Build for ${{ matrix.arch }}
         id: docker-build
@@ -108,7 +108,7 @@ jobs:
           # PR builds: load locally for validation, Push builds: push by digest
           push: false
           load: ${{ github.event_name == 'pull_request' }}
-          outputs: ${{ github.event_name != 'pull_request' && github.actor != 'dependabot[bot]' && format('type=image,"name=ghcr.io/{0}/image-generation{1}",name-canonical=true,push-by-digest=true,push=true', steps.repo-owner.outputs.lowercase, env.DOCKERHUB_USERNAME && format(',docker.io/{0}/image-generation', env.DOCKERHUB_USERNAME) || '') || '' }}
+          outputs: ${{ github.event_name != 'pull_request' && github.actor != 'dependabot[bot]' && format('type=image,"name=ghcr.io/{0}/lumina{1}",name-canonical=true,push-by-digest=true,push=true', steps.repo-owner.outputs.lowercase, env.DOCKERHUB_USERNAME && format(',docker.io/{0}/lumina', env.DOCKERHUB_USERNAME) || '') || '' }}
           cache-from: type=gha,scope=build-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=build-${{ matrix.arch }}
 
@@ -154,9 +154,9 @@ jobs:
               body += `**Note**: PR builds only verify the Docker build process for linux/amd64. `;
               body += `Multi-platform images (amd64 + arm64) are built and pushed to registries only when merged to main.\n\n`;
               body += `**Registries**:\n`;
-              body += `- GitHub Container Registry: \`ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/image-generation\`\n`;
+              body += `- GitHub Container Registry: \`ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/lumina\`\n`;
               if ('${{ env.DOCKERHUB_USERNAME }}') {
-                body += `- Docker Hub: \`docker.io/${{ env.DOCKERHUB_USERNAME }}/image-generation\`\n`;
+                body += `- Docker Hub: \`docker.io/${{ env.DOCKERHUB_USERNAME }}/lumina\`\n`;
               }
             } else {
               body += `### ❌ Build Failed\n\n`;
@@ -242,8 +242,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/image-generation
-            ${{ env.DOCKERHUB_USERNAME && format('docker.io/{0}/image-generation', env.DOCKERHUB_USERNAME) || '' }}
+            ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/lumina
+            ${{ env.DOCKERHUB_USERNAME && format('docker.io/{0}/lumina', env.DOCKERHUB_USERNAME) || '' }}
           tags: |
             type=ref,event=branch
             type=ref,event=tag
@@ -258,13 +258,13 @@ jobs:
         run: |
           for TAG in $DOCKER_METADATA_OUTPUT_TAGS; do
             docker buildx imagetools create -t $TAG \
-              $(printf 'ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/image-generation@sha256:%s ' *)
+              $(printf 'ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/lumina@sha256:%s ' *)
             sleep 3
           done
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/image-generation:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/lumina:${{ steps.meta.outputs.version }}
 
       - name: Generate build summary
         if: always()
@@ -275,9 +275,9 @@ jobs:
           if [ "${{ job.status }}" = "success" ]; then
             echo "- ✅ Multi-architecture build successful" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Platforms: \`linux/amd64\`, \`linux/arm64\`" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ Pushed to GitHub Container Registry: \`ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/image-generation\`" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Pushed to GitHub Container Registry: \`ghcr.io/${{ steps.repo-owner.outputs.lowercase }}/lumina\`" >> $GITHUB_STEP_SUMMARY
             if [ -n "${{ env.DOCKERHUB_USERNAME }}" ]; then
-              echo "- ✅ Pushed to Docker Hub: \`docker.io/${{ env.DOCKERHUB_USERNAME }}/image-generation\`" >> $GITHUB_STEP_SUMMARY
+              echo "- ✅ Pushed to Docker Hub: \`docker.io/${{ env.DOCKERHUB_USERNAME }}/lumina\`" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "- ❌ Build or push failed" >> $GITHUB_STEP_SUMMARY
