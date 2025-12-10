@@ -1,29 +1,25 @@
-import React from 'react'
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from "next/font/google"
+import React from 'react';
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
 
-import "./globals.css"
+import './globals.css';
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-})
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+});
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-})
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+});
 
 export const metadata: Metadata = {
-  title: "Lumina AI Studio",
-  description: "AI Video Generation Studio",
-}
+  title: 'Lumina AI Studio',
+  description: 'AI Video Generation Studio',
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark h-full`}>
       <body className="bg-black text-white font-sans selection:bg-indigo-500/30 h-full antialiased overflow-x-hidden">
@@ -45,11 +41,9 @@ export default function RootLayout({
             <div className="absolute top-[-100px] left-[-100px] w-[200px] h-[120vh] bg-linear-to-b from-indigo-500/5 to-transparent rotate-30 blur-[50px] transform-origin-top-left opacity-20"></div>
           </div>
 
-          <div className="relative z-10">
-            {children}
-          </div>
+          <div className="relative z-10">{children}</div>
         </div>
       </body>
     </html>
-  )
+  );
 }

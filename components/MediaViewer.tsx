@@ -31,29 +31,47 @@ interface MediaViewerProps {
 }
 
 /**
- * MediaViewer - 通用媒体查看器组件
+ * MediaViewer - 通用媒体查看器组件（电影工作室风格）
  *
  * 根据资源类型自动渲染对应的查看器：
- * - 图片：高清大图查看
- * - 视频：HTML5 播放器 + 自定义控制栏
- * - 音频：原生音频播放器
+ * - 图片：高清大图查看 + 电影级背景效果
+ * - 视频：HTML5 播放器 + 自定义电影风格控制栏
+ * - 音频：渐变光球可视化 + 脉冲动画 + 自定义进度条
+ *
+ * 设计特点：
+ * - 全局电影工作室风格（径向渐变、光晕效果、噪点纹理）
+ * - 状态指示器采用电影级徽章设计（发光圆点、大写字体、描边边框）
+ * - 音频采用 3D 渐变光球可视化，播放时多层脉冲动画
+ * - 自定义进度条带渐变色和发光效果
+ * - 统一的 backdrop blur 和边框设计
  *
  * 符合 2025 年 React 最佳实践
  */
 const MediaViewer: React.FC<MediaViewerProps> = ({ isOpen, onClose, resource, taskName }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [isMuted, setIsMuted] = React.useState(false)
   const [isFullscreen, setIsFullscreen] = React.useState(false)
+  const [audioPlaying, setAudioPlaying] = React.useState(false)
+  const [audioCurrentTime, setAudioCurrentTime] = React.useState(0)
+  const [audioDuration, setAudioDuration] = React.useState(0)
 
-  // 重置播放状态和清理视频
+  // 重置播放状态和清理媒体
   useEffect(() => {
-    if (!isOpen && videoRef.current) {
-      // 暂停视频并重置到开始
-      videoRef.current.pause()
-      videoRef.current.currentTime = 0
-      setIsPlaying(false)
-      setIsFullscreen(false)
+    if (!isOpen) {
+      if (videoRef.current) {
+        videoRef.current.pause()
+        videoRef.current.currentTime = 0
+        setIsPlaying(false)
+        setIsFullscreen(false)
+      }
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+        setAudioPlaying(false)
+        setAudioCurrentTime(0)
+      }
     }
   }, [isOpen])
 
@@ -103,6 +121,48 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ isOpen, onClose, resource, ta
         setIsFullscreen(false)
       }
     }
+  }
+
+  // 音频播放/暂停
+  const toggleAudioPlay = () => {
+    if (audioRef.current) {
+      if (audioPlaying) {
+        audioRef.current.pause()
+      } else {
+        audioRef.current.play()
+      }
+      setAudioPlaying(!audioPlaying)
+    }
+  }
+
+  // 音频时间更新
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const updateTime = () => setAudioCurrentTime(audio.currentTime)
+    const updateDuration = () => setAudioDuration(audio.duration)
+
+    audio.addEventListener('timeupdate', updateTime)
+    audio.addEventListener('loadedmetadata', updateDuration)
+    audio.addEventListener('play', () => setAudioPlaying(true))
+    audio.addEventListener('pause', () => setAudioPlaying(false))
+    audio.addEventListener('ended', () => setAudioPlaying(false))
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime)
+      audio.removeEventListener('loadedmetadata', updateDuration)
+      audio.removeEventListener('play', () => setAudioPlaying(true))
+      audio.removeEventListener('pause', () => setAudioPlaying(false))
+      audio.removeEventListener('ended', () => setAudioPlaying(false))
+    }
+  }, [resource?.type])
+
+  // 格式化时间 (秒 -> MM:SS)
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   // 下载资源
@@ -260,18 +320,109 @@ const MediaViewer: React.FC<MediaViewerProps> = ({ isOpen, onClose, resource, ta
             </div>
           )}
 
-          {/* 音频渲染 */}
+          {/* 音频渲染 - 电影风格可视化 */}
           {resource.type === 'audio' && (
-            <div className="w-full max-w-2xl px-8 relative z-10">
-              <div className="bg-zinc-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-8 shadow-2xl">
-                <div className="flex items-center justify-center mb-6">
-                  <div className="w-24 h-24 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
-                    <Volume2 className="w-12 h-12 text-indigo-400" />
+            <div className="w-full max-w-3xl px-8 relative z-10 animate-in zoom-in-95 duration-500">
+              {/* 隐藏的音频元素 */}
+              <audio
+                ref={audioRef}
+                src={resource.url}
+                preload="metadata"
+                onError={(e) => {
+                  console.error('[MediaViewer] Audio error:', e)
+                  console.error('[MediaViewer] Audio URL:', resource.url)
+                }}
+                onLoadedMetadata={() => {
+                  console.log('[MediaViewer] Audio loaded:', {
+                    url: resource.url,
+                    duration: audioRef.current?.duration,
+                  })
+                }}
+              >
+                Your browser does not support the audio tag.
+              </audio>
+
+              {/* 主容器 */}
+              <div className="relative bg-zinc-900/40 backdrop-blur-2xl rounded-3xl border border-white/10 p-12 shadow-2xl overflow-hidden">
+                {/* 内部光晕背景 */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12),transparent_70%)] pointer-events-none"></div>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(139,92,246,0.08),transparent_50%)] pointer-events-none"></div>
+
+                {/* 音频可视化 - 渐变光球 */}
+                <div className="relative flex items-center justify-center mb-12">
+                  {/* 外层脉冲圆环（播放时动画） */}
+                  {audioPlaying && (
+                    <>
+                      <div className="absolute w-64 h-64 rounded-full bg-linear-to-r from-purple-500/20 via-indigo-500/20 to-pink-500/20 blur-3xl animate-pulse"></div>
+                      <div className="absolute w-56 h-56 rounded-full bg-linear-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 blur-2xl animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                    </>
+                  )}
+
+                  {/* 中层渐变光球 */}
+                  <div className={`relative w-48 h-48 rounded-full bg-linear-to-br from-purple-500/20 via-indigo-500/30 to-pink-500/20 backdrop-blur-md border border-white/20 shadow-[0_0_60px_rgba(99,102,241,0.4)] flex items-center justify-center transition-all duration-500 ${audioPlaying ? 'scale-110 shadow-[0_0_80px_rgba(139,92,246,0.6)]' : 'scale-100'}`}>
+                    {/* 内层核心光球 */}
+                    <div className={`absolute w-32 h-32 rounded-full bg-linear-to-br from-indigo-400/40 via-purple-400/40 to-pink-400/40 blur-xl transition-all duration-300 ${audioPlaying ? 'animate-pulse' : ''}`}></div>
+
+                    {/* 图标容器 */}
+                    <div className="relative z-10 w-20 h-20 rounded-full bg-black/30 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                      <Volume2 className={`w-10 h-10 text-indigo-300 transition-all duration-300 ${audioPlaying ? 'scale-110' : 'scale-100'}`} />
+                    </div>
                   </div>
                 </div>
-                <audio src={resource.url} controls className="w-full">
-                  Your browser does not support the audio tag.
-                </audio>
+
+                {/* 音频信息 */}
+                <div className="text-center mb-8">
+                  <h4 className="text-lg font-bold text-white mb-2 font-mono uppercase tracking-wide">
+                    {taskName || 'Audio_Track'}
+                  </h4>
+                  {resource.metadata?.duration && (
+                    <p className="text-sm text-zinc-400 font-mono">
+                      Duration: {formatTime(resource.metadata.duration)}
+                    </p>
+                  )}
+                </div>
+
+                {/* 进度条 */}
+                <div className="mb-8">
+                  <div className="relative h-2 bg-black/30 rounded-full overflow-hidden border border-white/5 backdrop-blur-sm">
+                    {/* 缓冲背景 */}
+                    <div className="absolute inset-0 bg-linear-to-r from-indigo-500/20 to-purple-500/20"></div>
+
+                    {/* 播放进度 */}
+                    <div
+                      className="absolute top-0 left-0 h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_10px_rgba(99,102,241,0.6)] transition-all duration-100"
+                      style={{ width: audioDuration > 0 ? `${(audioCurrentTime / audioDuration) * 100}%` : '0%' }}
+                    >
+                      {/* 进度头部光点 */}
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"></div>
+                    </div>
+                  </div>
+
+                  {/* 时间显示 */}
+                  <div className="flex items-center justify-between mt-3 text-xs font-mono text-zinc-500">
+                    <span className="px-2 py-0.5 bg-black/20 rounded border border-white/5">
+                      {formatTime(audioCurrentTime)}
+                    </span>
+                    <span className="px-2 py-0.5 bg-black/20 rounded border border-white/5">
+                      {formatTime(audioDuration)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 控制按钮 */}
+                <div className="flex items-center justify-center">
+                  <button
+                    onClick={toggleAudioPlay}
+                    className="p-5 rounded-full bg-linear-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20 hover:from-indigo-500/30 hover:via-purple-500/30 hover:to-pink-500/30 transition-all border border-white/20 hover:border-white/40 shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)] backdrop-blur-md group"
+                    title={audioPlaying ? 'Pause' : 'Play'}
+                  >
+                    {audioPlaying ? (
+                      <Pause className="w-7 h-7 text-white group-hover:text-indigo-200 transition-colors" />
+                    ) : (
+                      <Play className="w-7 h-7 text-white group-hover:text-indigo-200 transition-colors ml-0.5" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}

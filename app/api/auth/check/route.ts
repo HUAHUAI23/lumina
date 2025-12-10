@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     console.error('Check user error:', error)
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: error.errors[0].message }, { status: 400 })
+      return NextResponse.json({ success: false, error: error.issues[0].message }, { status: 400 })
     }
 
     return NextResponse.json({ success: false, error: 'Failed to check user' }, { status: 500 })

@@ -726,9 +726,8 @@ const VideoStudio: React.FC = () => {
                 ) : (
                   // Completed State
                   <div className="relative w-full max-w-4xl aspect-video bg-black rounded-sm overflow-hidden shadow-2xl border border-zinc-800 group">
-                    {activeTaskDetail.outputs &&
-                      activeTaskDetail.outputs.length > 0 &&
-                      (activeTaskDetail.outputs[0].type === 'video' ? (
+                    {activeTaskDetail.outputs && activeTaskDetail.outputs.length > 0 ? (
+                      activeTaskDetail.outputs[0].type === 'video' ? (
                         <video
                           src={activeTaskDetail.outputs[0].url}
                           controls
@@ -736,15 +735,42 @@ const VideoStudio: React.FC = () => {
                           loop
                           className="w-full h-full object-contain"
                         />
+                      ) : activeTaskDetail.outputs[0].type === 'audio' ? (
+                        // Audio Player
+                        <div className="w-full h-full flex items-center justify-center p-8">
+                          <div className="w-full max-w-2xl bg-zinc-900/50 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+                            <div className="flex items-center justify-center mb-6">
+                              <div className="relative">
+                                <div className="w-32 h-32 rounded-full bg-linear-to-br from-purple-500/20 via-indigo-500/30 to-pink-500/20 backdrop-blur-md border border-white/20 shadow-[0_0_40px_rgba(99,102,241,0.3)] flex items-center justify-center">
+                                  <Mic className="w-16 h-16 text-indigo-300" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-center mb-6">
+                              <h4 className="text-base font-bold text-white mb-2 font-mono uppercase tracking-wide">
+                                {activeTaskDetail.name}
+                              </h4>
+                              {activeTaskDetail.outputs[0].metadata?.duration && (
+                                <p className="text-sm text-zinc-400 font-mono">
+                                  Duration: {Math.round(activeTaskDetail.outputs[0].metadata.duration)}s
+                                </p>
+                              )}
+                            </div>
+                            <audio src={activeTaskDetail.outputs[0].url} controls className="w-full">
+                              Your browser does not support the audio tag.
+                            </audio>
+                          </div>
+                        </div>
                       ) : (
+                        // Image
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={activeTaskDetail.outputs[0].url}
                           alt=""
                           className="w-full h-full object-contain"
                         />
-                      ))}
-                    {!activeTaskDetail.outputs?.length && (
+                      )
+                    ) : (
                       <div className="flex items-center justify-center h-full text-zinc-500 font-mono text-xs">
                         No media output available
                       </div>
