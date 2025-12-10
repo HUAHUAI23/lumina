@@ -14,7 +14,16 @@ export const env = createEnv({
     GITHUB_CLIENT_SECRET: z.string().optional(),
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     // Cookie 安全配置
-    COOKIE_SECURE: z.coerce.boolean().default(true), // 是否使用 HTTPS-only cookies（开发环境可设为 false）
+    COOKIE_SECURE: z
+      .string()
+      .optional()
+      .default('true')
+      .transform((val) => {
+        // Properly parse string boolean values
+        if (val === 'false' || val === '0' || val === '') return false
+        if (val === 'true' || val === '1') return true
+        return Boolean(val)
+      }), // 是否使用 HTTPS-only cookies（开发环境可设为 false）
     // 日志配置
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
     DB_QUERY_LOGGING: z.coerce.boolean().default(false), // 数据库查询日志独立开关
