@@ -2,20 +2,21 @@
  * 任务服务
  */
 
-import { and, count, desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, SQL } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { taskResources, tasks } from '@/db/schema'
 
 import { logTaskCancelled, logTaskCreated } from './utils/task-logger'
 import {
+  calculateAudioEstimatedCost,
   calculateImageEstimatedCost,
   calculateVideoEstimatedCost,
   chargeForTask,
   refundTask,
 } from './billing'
 import { TaskNotFoundError } from './errors'
-import type { CreateTaskParams } from './types'
+import type { CreateTaskParams, Task, TaskStatusType, TaskTypeType } from './types'
 import { TASK_TYPE_TO_CATEGORY, TASK_TYPE_TO_MODE, TaskCategory, TaskStatus } from './types'
 
 /**
@@ -26,15 +27,33 @@ async function create(params: CreateTaskParams) {
 
   const category = TASK_TYPE_TO_CATEGORY[type]
   const mode = TASK_TYPE_TO_MODE[type]
+
   // 计算预估费用和用量
-  const { cost, estimatedUsage, pricing } =
-    category === TaskCategory.VIDEO
-      ? await calculateVideoEstimatedCost(type, estimatedDuration, estimatedCount)
-      : category === TaskCategory.IMAGE
-      ? await calculateImageEstimatedCost(type, estimatedCount)
-      : (() => {
-          throw new Error(`不支持的任务类别: ${category}`)
-        })()
+  let cost
+  let estimatedUsage
+  let pricing
+
+  switch (category) {
+    case TaskCategory.VIDEO:
+      ;({ cost, estimatedUsage, pricing } = await calculateVideoEstimatedCost(
+        type,
+        estimatedDuration,
+        estimatedCount
+      ))
+      break
+    case TaskCategory.IMAGE:
+      ;({ cost, estimatedUsage, pricing } = await calculateImageEstimatedCost(type, estimatedCount))
+      break
+    case TaskCategory.AUDIO:
+      ;({ cost, estimatedUsage, pricing } = await calculateAudioEstimatedCost(
+        type,
+        estimatedDuration,
+        estimatedCount
+      ))
+      break
+    default:
+      throw new Error(`不支持的任务类别: ${category}`)
+  }
 
   return db.transaction(async (tx) => {
     // 预扣费（会检查余额）
@@ -72,8 +91,8 @@ async function create(params: CreateTaskParams) {
       )
     }
 
-    // 记录日志
-    await logTaskCreated(task.id, cost)
+    // 记录日志（传递事务上下文）
+    await logTaskCreated(task.id, cost, tx)
 
     return task
   })
@@ -86,11 +105,7 @@ async function create(params: CreateTaskParams) {
 async function cancel(taskId: number): Promise<void> {
   const task = await db.transaction(async (tx) => {
     // 使用 FOR UPDATE 锁定任务行，确保状态检查和更新原子性
-    const [lockedTask] = await tx
-      .select()
-      .from(tasks)
-      .where(eq(tasks.id, taskId))
-      .for('update')
+    const [lockedTask] = await tx.select().from(tasks).where(eq(tasks.id, taskId)).for('update')
 
     if (!lockedTask) {
       throw new TaskNotFoundError(taskId)
@@ -118,7 +133,87 @@ async function cancel(taskId: number): Promise<void> {
   await refundTask(task)
 }
 
+/**
+ * 查询任务列表
+ */
+interface ListTasksOptions {
+  status?: TaskStatusType
+  type?: TaskTypeType
+  limit?: number
+  offset?: number
+}
+
+interface ListTasksResult {
+  tasks: Task[]
+  total: number
+}
+
+async function list(accountId: number, options: ListTasksOptions = {}): Promise<ListTasksResult> {
+  const { status, type, limit = 20, offset = 0 } = options
+
+  // 构建查询条件
+  const conditions: SQL[] = [eq(tasks.accountId, accountId)]
+
+  if (status) {
+    conditions.push(eq(tasks.status, status))
+  }
+
+  if (type) {
+    conditions.push(eq(tasks.type, type))
+  }
+
+  const where = conditions.length > 1 ? and(...conditions) : conditions[0]
+
+  // 查询任务列表
+  const taskList = await db
+    .select()
+    .from(tasks)
+    .where(where)
+    .orderBy(desc(tasks.createdAt))
+    .limit(limit)
+    .offset(offset)
+
+  // 查询总数
+  const [{ total }] = await db.select({ total: count() }).from(tasks).where(where)
+
+  return {
+    tasks: taskList,
+    total,
+  }
+}
+
+/**
+ * 获取任务详情（包括输入输出资源）
+ */
+async function get(taskId: number) {
+  const task = await db.query.tasks.findFirst({
+    where: eq(tasks.id, taskId),
+  })
+
+  if (!task) {
+    return null
+  }
+
+  // 获取输入资源
+  const inputs = await db.query.taskResources.findMany({
+    where: and(eq(taskResources.taskId, taskId), eq(taskResources.isInput, true)),
+  })
+
+  // 获取输出资源
+  const outputs = await db.query.taskResources.findMany({
+    where: and(eq(taskResources.taskId, taskId), eq(taskResources.isInput, false)),
+  })
+
+  return {
+    task,
+    inputs,
+    outputs,
+  }
+}
+
 export const taskService = {
   create,
   cancel,
+  list,
+  get,
 }

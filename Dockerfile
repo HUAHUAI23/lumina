@@ -47,12 +47,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Install runtime dependencies including OpenSSL for database connections
+# Install runtime dependencies including OpenSSL for database connections and ffmpeg for media parsing
 RUN sed -i 's/https/http/' /etc/apk/repositories
 RUN apk add --no-cache \
     curl \
     ca-certificates \
     openssl \
+    ffmpeg \
   && update-ca-certificates
 
 # Automatically leverage output traces to reduce image size

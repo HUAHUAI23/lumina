@@ -1,0 +1,494 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Film, Info, Layers, Loader2, Mic, RefreshCw, Wand2, Zap } from 'lucide-react';
+
+import FileUpload from '@/components/FileUpload';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { POST } from '@/lib/api-client';
+import type { ApiResponse } from '@/lib/api-response';
+import type { FileWithPreview } from '@/types';
+
+interface VideoLipsyncFormProps {
+  onSuccess?: (taskIds: number[]) => void;
+  userBalance: number;
+}
+
+interface MediaMetadata {
+  duration: number;
+  width?: number;
+  height?: number;
+}
+
+const VideoLipsyncForm: React.FC<VideoLipsyncFormProps> = ({ onSuccess, userBalance }) => {
+  const [videoFile, setVideoFile] = useState<FileWithPreview | null>(null);
+  const [audioFile, setAudioFile] = useState<FileWithPreview | null>(null);
+
+  // Config
+  const [separateVocal, setSeparateVocal] = useState(true);
+  const [useBasicMode, setUseBasicMode] = useState(false);
+  const [openScenedet, setOpenScenedet] = useState(false); // Basic
+  const [alignAudio, setAlignAudio] = useState(true); // Lite
+  const [alignAudioReverse, setAlignAudioReverse] = useState(false); // Lite
+  const [templStartSeconds, setTemplStartSeconds] = useState<number>(0); // Lite
+  const [estimatedCount, setEstimatedCount] = useState<number>(1);
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 元数据
+  const [videoMetadata, setVideoMetadata] = useState<MediaMetadata | null>(null);
+  const [audioMetadata, setAudioMetadata] = useState<MediaMetadata | null>(null);
+
+  // 费用预估
+  const [estimatedCost, setEstimatedCost] = useState<number>(0);
+
+  // 提取视频元数据
+  const extractVideoMetadata = (file: File): Promise<MediaMetadata> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(video.src);
+        resolve({
+          duration: Math.ceil(video.duration),
+          width: video.videoWidth,
+          height: video.videoHeight,
+        });
+      };
+      video.onerror = () => {
+        URL.revokeObjectURL(video.src);
+        reject(new Error('无法读取视频元数据'));
+      };
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  // 提取音频元数据
+  const extractAudioMetadata = (file: File): Promise<MediaMetadata> => {
+    return new Promise((resolve, reject) => {
+      const audio = document.createElement('audio');
+      audio.preload = 'metadata';
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(audio.src);
+        resolve({
+          duration: Math.ceil(audio.duration),
+        });
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(audio.src);
+        reject(new Error('无法读取音频元数据'));
+      };
+      audio.src = URL.createObjectURL(file);
+    });
+  };
+
+  // 处理视频选择
+  const handleVideoSelect = async (file: FileWithPreview) => {
+    setVideoFile(file);
+    setError(null);
+    try {
+      const metadata = await extractVideoMetadata(file.file);
+      setVideoMetadata(metadata);
+      updateEstimatedCost(metadata, audioMetadata, estimatedCount);
+    } catch (err) {
+      console.error('提取视频元数据失败:', err);
+      setError('无法读取视频信息，请确保文件格式正确');
+    }
+  };
+
+  // 处理音频选择
+  const handleAudioSelect = async (file: FileWithPreview) => {
+    setAudioFile(file);
+    setError(null);
+    try {
+      const metadata = await extractAudioMetadata(file.file);
+      setAudioMetadata(metadata);
+      updateEstimatedCost(videoMetadata, metadata, estimatedCount);
+    } catch (err) {
+      console.error('提取音频元数据失败:', err);
+      setError('无法读取音频信息，请确保文件格式正确');
+    }
+  };
+
+  // 更新费用预估
+  const updateEstimatedCost = (
+    videoMeta: MediaMetadata | null,
+    audioMeta: MediaMetadata | null,
+    count: number
+  ) => {
+    // 假设费用主要由生成时长决定，生成时长约为音频时长
+    // 暂定每秒 10 分
+    if (audioMeta) {
+      const duration = audioMeta.duration;
+      // 简单预估
+      const cost = Math.ceil(duration * 10) * count;
+      setEstimatedCost(cost);
+    } else {
+      setEstimatedCost(0);
+    }
+  };
+
+  const handleCountChange = (count: number) => {
+    setEstimatedCount(count);
+    updateEstimatedCost(videoMetadata, audioMetadata, count);
+  };
+
+  // 创建任务
+  const handleSubmit = async () => {
+    if (!videoFile || !audioFile) {
+      setError('请上传视频和音频');
+      return;
+    }
+
+    if (userBalance < estimatedCost) {
+      setError(`余额不足，当前余额: ${userBalance / 100} 元，预估费用: ${estimatedCost / 100} 元`);
+      return;
+    }
+
+    setError(null);
+    setIsCreating(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('video', videoFile.file);
+      formData.append('audio', audioFile.file);
+      formData.append('estimatedCount', estimatedCount.toString());
+      formData.append('separateVocal', separateVocal.toString());
+      formData.append('useBasicMode', useBasicMode.toString());
+
+      if (useBasicMode) {
+        formData.append('openScenedet', openScenedet.toString());
+      } else {
+        formData.append('alignAudio', alignAudio.toString());
+        formData.append('alignAudioReverse', alignAudioReverse.toString());
+        formData.append('templStartSeconds', templStartSeconds.toString());
+      }
+      // formData.append('alignAudio', 'true') // Default true
+
+      const name = videoFile.file.name.split('.')[0];
+      formData.append('name', `改口型 - ${name}`);
+
+      const taskResponse = await POST<ApiResponse<{ task: { id: number } }>>(
+        '/api/tasks/create-lipsync',
+        formData
+      );
+
+      if (!taskResponse.success) {
+        throw new Error(taskResponse.error);
+      }
+
+      onSuccess?.([taskResponse.data.task.id]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '创建任务失败';
+      setError(message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const canSubmit = videoFile && audioFile && !isCreating;
+
+  return (
+    <div className="space-y-6">
+      {/* 错误提示 */}
+      {error && (
+        <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-sm text-red-400 text-xs font-mono animate-in fade-in">
+          {error}
+        </div>
+      )}
+
+      {/* 视频上传 */}
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest border-b border-zinc-800 pb-2">
+          <Film className="w-3 h-3" />
+          Reference_Video (Face)
+          <span className="text-[9px] text-red-400 ml-auto px-1 py-0.5 border border-red-900/30 bg-red-900/10 rounded-sm">
+            [REQUIRED]
+          </span>
+        </label>
+        <FileUpload
+          type="video"
+          accept="video/*"
+          label="Upload Face Video"
+          selectedFile={videoFile}
+          onFileSelect={handleVideoSelect}
+          onRemove={() => {
+            setVideoFile(null);
+            setVideoMetadata(null);
+            updateEstimatedCost(null, audioMetadata, estimatedCount);
+          }}
+        />
+        {videoMetadata && (
+          <div className="p-2 bg-zinc-900/30 border border-zinc-800 rounded-sm text-[10px] font-mono text-zinc-400">
+            <div className="flex gap-4">
+              <span>时长: {videoMetadata.duration}s</span>
+              <span>
+                尺寸: {videoMetadata.width}x{videoMetadata.height}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 音频上传 */}
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest border-b border-zinc-800 pb-2">
+          <Mic className="w-3 h-3" />
+          Voice_Audio
+          <span className="text-[9px] text-red-400 ml-auto px-1 py-0.5 border border-red-900/30 bg-red-900/10 rounded-sm">
+            [REQUIRED]
+          </span>
+        </label>
+        <FileUpload
+          type="audio"
+          accept="audio/*"
+          label="Upload Voice Audio"
+          selectedFile={audioFile}
+          onFileSelect={handleAudioSelect}
+          onRemove={() => {
+            setAudioFile(null);
+            setAudioMetadata(null);
+            updateEstimatedCost(videoMetadata, null, estimatedCount);
+          }}
+          className="h-24"
+        />
+        {audioMetadata && (
+          <div className="p-2 bg-zinc-900/30 border border-zinc-800 rounded-sm text-[10px] font-mono text-zinc-400">
+            <div className="flex gap-4">
+              <span>时长: {audioMetadata.duration}s</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 选项配置 */}
+      <div className="space-y-3">
+        <label className="text-[10px] font-bold text-zinc-400 flex items-center gap-2 uppercase tracking-widest border-b border-zinc-800 pb-2">
+          Configuration
+        </label>
+
+        <div className="space-y-3 p-3 bg-zinc-900/20 border border-zinc-900 rounded-sm">
+          {/* Generation Count */}
+          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-3">
+            <div className="space-y-0.5">
+              <Label className="text-[11px] font-bold text-zinc-300 flex items-center gap-2">
+                <Layers className="w-3 h-3 text-zinc-500" />
+                Batch Size
+              </Label>
+              <p className="text-[9px] text-zinc-500 font-mono">Number of variations to generate</p>
+            </div>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => handleCountChange(n)}
+                  className={`w-6 h-6 flex items-center justify-center rounded-sm text-[10px] font-bold font-mono transition-all
+                     ${
+                       estimatedCount === n
+                         ? 'bg-zinc-100 text-black shadow-[0_0_10px_rgba(255,255,255,0.2)]'
+                         : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300'
+                     }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Separate Vocal */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-[11px] font-bold text-zinc-300">Separate Vocals</Label>
+              <p className="text-[9px] text-zinc-500 font-mono">
+                Isolate voice from background noise
+              </p>
+            </div>
+            <Switch
+              checked={separateVocal}
+              onCheckedChange={setSeparateVocal}
+              className="scale-75"
+            />
+          </div>
+
+          {/* Processing Mode Selector */}
+          <div className="space-y-2 pt-2 border-t border-zinc-800/50">
+            <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              Processing Mode
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setUseBasicMode(false)}
+                className={`p-2 rounded-sm border text-left transition-all ${
+                  !useBasicMode
+                    ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-100 shadow-[0_0_15px_rgba(99,102,241,0.1)]'
+                    : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap
+                    className={`w-3 h-3 ${!useBasicMode ? 'text-indigo-400' : 'text-zinc-600'}`}
+                  />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Lite</span>
+                </div>
+                <div className="text-[8px] font-mono opacity-70">
+                  Faster generation, standard quality. Loop optimized.
+                </div>
+              </button>
+
+              <button
+                onClick={() => setUseBasicMode(true)}
+                className={`p-2 rounded-sm border text-left transition-all ${
+                  useBasicMode
+                    ? 'bg-amber-500/10 border-amber-500/50 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                    : 'bg-zinc-900/30 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900/50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <RefreshCw
+                    className={`w-3 h-3 ${useBasicMode ? 'text-amber-400' : 'text-zinc-600'}`}
+                  />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Basic</span>
+                </div>
+                <div className="text-[8px] font-mono opacity-70">
+                  High fidelity, scene detection. Slower process.
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Mode-Specific Settings */}
+          <div className="animate-in fade-in slide-in-from-top-1 space-y-3 pt-2 border-t border-zinc-800/50">
+            {useBasicMode ? (
+              // BASIC MODE SETTINGS
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-[11px] font-bold text-zinc-300">Scene Detection</Label>
+                  <p className="text-[9px] text-zinc-500 font-mono">
+                    Auto-detect scenes & speakers
+                  </p>
+                </div>
+                <Switch
+                  checked={openScenedet}
+                  onCheckedChange={setOpenScenedet}
+                  className="scale-75"
+                />
+              </div>
+            ) : (
+              // LITE MODE SETTINGS
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-[11px] font-bold text-zinc-300">Align Audio Loop</Label>
+                    <p className="text-[9px] text-zinc-500 font-mono">
+                      Loop video to match audio length
+                    </p>
+                  </div>
+                  <Switch
+                    checked={alignAudio}
+                    onCheckedChange={setAlignAudio}
+                    className="scale-75"
+                  />
+                </div>
+
+                {alignAudio && (
+                  <div className="flex items-center justify-between pl-4 border-l border-zinc-800 ml-1">
+                    <div className="space-y-0.5">
+                      <Label className="text-[11px] font-bold text-zinc-400">Reverse Loop</Label>
+                      <p className="text-[9px] text-zinc-600 font-mono">
+                        Boomerang efffect for smoother loops
+                      </p>
+                    </div>
+                    <Switch
+                      checked={alignAudioReverse}
+                      onCheckedChange={setAlignAudioReverse}
+                      className="scale-75"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-bold text-zinc-300">
+                    Video Start Offset (s)
+                  </Label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={templStartSeconds}
+                    onChange={(e) => setTemplStartSeconds(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-black border border-zinc-800 rounded-sm px-2 py-1 text-xs text-white focus:border-indigo-500/50 outline-none font-mono"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 提交按钮 */}
+      <div className="pt-6 border-t border-zinc-800">
+        <button
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className="w-full py-3 bg-zinc-100 text-black rounded-sm text-xs font-bold uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] border border-transparent hover:border-indigo-500"
+        >
+          {isCreating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Creating_Task...
+            </>
+          ) : (
+            <>
+              <Wand2 className="w-4 h-4" />
+              Create_Lipsync_Task
+            </>
+          )}
+        </button>
+
+        {/* 费用信息 */}
+        <div className="mt-4 flex justify-center">
+          <div className="group relative">
+            <div className="flex items-center gap-2 text-[9px] text-zinc-600 cursor-help hover:text-zinc-400 transition-colors font-mono uppercase tracking-wider">
+              <span>BAL: {(userBalance / 100).toFixed(2)}</span>
+              <div className="w-0.5 h-3 bg-zinc-800"></div>
+              <span>EST: ~{(estimatedCost / 100).toFixed(2)} ¥</span>
+              <Info className="w-3 h-3 text-zinc-700" />
+            </div>
+
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-black border border-zinc-700 rounded-sm shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="text-[10px] font-bold text-white mb-2 pb-2 border-b border-zinc-800 uppercase tracking-widest">
+                Cost Breakdown
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] text-zinc-400 font-mono">
+                  <span>TASK_TYPE</span>
+                  <span>VIDEO_LIPSYNC</span>
+                </div>
+                <div className="flex justify-between text-[9px] text-zinc-400 font-mono">
+                  <span>DURATION</span>
+                  <span>{audioMetadata?.duration || 0}s</span>
+                </div>
+                <div className="flex justify-between text-[9px] text-zinc-400 font-mono">
+                  <span>UNIT_PRICE</span>
+                  <span>0.10 ¥/s</span>
+                </div>
+                <div className="flex justify-between text-[9px] text-zinc-400 font-mono">
+                  <span>COUNT</span>
+                  <span>{estimatedCount}</span>
+                </div>
+                <div className="flex justify-between text-[9px] font-bold text-emerald-500 pt-2 border-t border-zinc-800 mt-1 font-mono">
+                  <span>TOTAL_EST</span>
+                  <span>{(estimatedCost / 100).toFixed(2)} ¥</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default VideoLipsyncForm;

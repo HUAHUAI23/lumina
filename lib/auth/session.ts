@@ -68,7 +68,7 @@ export async function createSession(userId: number, username: string, email?: st
   const cookieStore = await cookies()
   cookieStore.set(SESSION_COOKIE_NAME, session, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: env.COOKIE_SECURE,
     expires: expiresAt,
     sameSite: 'lax',
     path: '/',
@@ -101,7 +101,7 @@ export async function deleteSession() {
   // Set cookie with past expiration date to ensure deletion
   cookieStore.set(SESSION_COOKIE_NAME, '', {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: env.COOKIE_SECURE,
     expires: new Date(0), // Set to epoch time to expire immediately
     sameSite: 'lax',
     path: '/',
@@ -134,7 +134,7 @@ export async function updateSession(request: NextRequest) {
     name: SESSION_COOKIE_NAME,
     value: await encrypt(parsed),
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
+    secure: env.COOKIE_SECURE,
     expires: parsed.expiresAt,
     sameSite: 'lax',
     path: '/',

@@ -19,12 +19,16 @@ const logger = baseLogger.child({ module: 'tasks/billing' })
 /**
  * 获取任务类型的价格配置 (当前只实现 BillingType.PER_UNIT 计费方式)
  */
-export async function getPricing(taskType: TaskTypeType): Promise<Pricing | undefined> {
+export async function getPricing(taskType: TaskTypeType): Promise<Pricing> {
   const pricingConfig = await db.query.pricing.findFirst({
     where: eq(pricing.taskType, taskType),
   })
 
-  if (pricingConfig && pricingConfig.billingType !== BillingType.PER_UNIT) {
+  if (!pricingConfig) {
+    throw new Error(`未找到任务类型 ${taskType} 的价格配置，请联系管理员`)
+  }
+
+  if (pricingConfig.billingType !== BillingType.PER_UNIT) {
     throw new Error(`任务类型 ${taskType} 的计费类型不是 per_unit，当前只支持按次计费`)
   }
 
@@ -49,10 +53,6 @@ export async function calculateVideoEstimatedCost(
   }
 
   const pricingConfig = await getPricing(taskType)
-
-  if (!pricingConfig) {
-    throw new Error(`未找到任务类型 ${taskType} 的价格配置`)
-  }
 
   // 单个视频的用量（秒数）
   const singleUsage = Math.max(estimatedDuration || 0, Number(pricingConfig.minUnit))
@@ -81,12 +81,37 @@ export async function calculateImageEstimatedCost(
 
   const pricingConfig = await getPricing(taskType)
 
-  if (!pricingConfig) {
-    throw new Error(`未找到任务类型 ${taskType} 的价格配置`)
-  }
-
   // 图片按张计费
   const estimatedUsage = Math.max(estimatedCount || 1, Number(pricingConfig.minUnit))
+
+  const cost = Math.ceil(estimatedUsage * pricingConfig.unitPrice)
+
+  return { cost, estimatedUsage, pricing: pricingConfig }
+}
+
+/**
+ * 计算音频类任务的预估费用
+ * @param taskType 任务类型
+ * @param estimatedDuration 预估时长（秒），音频类任务用
+ * @param estimatedCount 预估数量
+ * @returns cost: 预估费用（分）, estimatedUsage: 预估用量（秒）, pricing: 价格配置
+ */
+export async function calculateAudioEstimatedCost(
+  taskType: TaskTypeType,
+  estimatedDuration?: number,
+  estimatedCount?: number
+): Promise<{ cost: number; estimatedUsage: number; pricing: Pricing }> {
+  const category = TASK_TYPE_TO_CATEGORY[taskType]
+  if (category !== TaskCategory.AUDIO) {
+    throw new Error(`任务类型 ${taskType} 不是音频类任务`)
+  }
+
+  const pricingConfig = await getPricing(taskType)
+
+  // 单个音频的用量（秒数）
+  const singleUsage = Math.max(estimatedDuration || 0, Number(pricingConfig.minUnit))
+  // 总用量 = 单个用量 * 数量
+  const estimatedUsage = singleUsage * (estimatedCount || 1)
 
   const cost = Math.ceil(estimatedUsage * pricingConfig.unitPrice)
 

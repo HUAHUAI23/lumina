@@ -5,6 +5,9 @@
 import { db } from '@/db'
 import { taskLogs } from '@/db/schema'
 
+// 支持 db 或事务上下文
+type DbOrTransaction = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0]
+
 /**
  * 记录任务日志
  */
@@ -12,16 +15,35 @@ export async function logTask(
   taskId: number,
   level: 'info' | 'warn' | 'error',
   message: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
+  dbOrTx: DbOrTransaction = db
 ): Promise<void> {
-  await db.insert(taskLogs).values({ taskId, level, message, data })
+  await dbOrTx.insert(taskLogs).values({ taskId, level, message, data })
 }
 
 /**
  * 记录任务创建
  */
-export async function logTaskCreated(taskId: number, estimatedCost: number): Promise<void> {
-  await logTask(taskId, 'info', '任务创建成功', { estimatedCost })
+export async function logTaskCreated(
+  taskId: number,
+  estimatedCost: number,
+  dbOrTx: DbOrTransaction = db
+): Promise<void> {
+  await logTask(taskId, 'info', '任务创建成功', { estimatedCost }, dbOrTx)
+}
+
+/**
+ * 记录任务提交到第三方平台成功
+ */
+export async function logTaskSubmitted(
+  taskId: number,
+  externalTaskId: string,
+  requestId?: string
+): Promise<void> {
+  await logTask(taskId, 'info', '任务已提交到第三方平台', {
+    externalTaskId,
+    requestId,
+  })
 }
 
 /**
@@ -48,12 +70,14 @@ export async function logTaskFailed(
   error: string,
   retryable: boolean,
   errorCode?: number,
-  retryCount?: number
+  retryCount?: number,
+  requestId?: string
 ): Promise<void> {
   await logTask(taskId, 'error', error, {
     retryable,
     errorCode,
     retryCount,
+    requestId,
   })
 }
 

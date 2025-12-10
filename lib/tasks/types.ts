@@ -36,11 +36,13 @@ export const TaskType = {
   IMAGE_3D_MODEL: 'image_3d_model',
   IMAGE_IMG2IMG: 'image_img2img',
   IMAGE_TXT2IMG: 'image_txt2img',
+  AUDIO_TTS: 'audio_tts',
 } as const satisfies Record<string, TaskTypeType>
 
 export const TaskCategory = {
   VIDEO: 'video',
   IMAGE: 'image',
+  AUDIO: 'audio',
 } as const satisfies Record<string, TaskCategoryType>
 
 export const TaskMode = {
@@ -79,6 +81,7 @@ export const TASK_TYPE_TO_CATEGORY: Record<TaskTypeType, TaskCategoryType> = {
   image_3d_model: 'image',
   image_img2img: 'image',
   image_txt2img: 'image',
+  audio_tts: 'audio',
 }
 
 export const TASK_TYPE_TO_MODE: Record<TaskTypeType, TaskModeType> = {
@@ -88,6 +91,7 @@ export const TASK_TYPE_TO_MODE: Record<TaskTypeType, TaskModeType> = {
   image_3d_model: 'async',
   image_img2img: 'sync',
   image_txt2img: 'sync',
+  audio_tts: 'sync',
 }
 
 // ==================== 表类型 ====================

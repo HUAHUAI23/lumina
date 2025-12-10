@@ -17,7 +17,7 @@
     "eslint.codeActionsOnSave.mode": "all",
     // formatters
     "[typescriptreact]": {
-        "editor.defaultFormatter": "vscode.typescript-language-features"
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -29,5 +29,9 @@
         "editor.insertSpaces": true,
         "editor.detectIndentation": false
     },
-    "typescript.tsdk": "node_modules/typescript/lib"
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "cSpell.words": [
+        "Volcengine",
+        "VOLCENGINE"
+    ]
 }

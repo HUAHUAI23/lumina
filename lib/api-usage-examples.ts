@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     // 处理验证错误
     if (error instanceof ZodError) {
       return NextResponse.json(
-        errorResponse('参数验证失败', error.errors),
+        errorResponse('参数验证失败', error.issues),
         { status: HttpStatus.BAD_REQUEST }
       )
     }
