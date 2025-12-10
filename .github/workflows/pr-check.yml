@@ -93,7 +93,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: image-generation
+          images: lumina
           tags: |
             type=ref,event=pr
             type=sha,prefix=sha-
