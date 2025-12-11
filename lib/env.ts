@@ -26,16 +26,48 @@ export const env = createEnv({
       }), // 是否使用 HTTPS-only cookies（开发环境可设为 false）
     // 日志配置
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
-    DB_QUERY_LOGGING: z.coerce.boolean().default(false), // 数据库查询日志独立开关
+    DB_QUERY_LOGGING: z
+      .string()
+      .optional()
+      .default('false')
+      .transform((val) => {
+        if (val === 'false' || val === '0' || val === '') return false
+        if (val === 'true' || val === '1') return true
+        return Boolean(val)
+      }), // 数据库查询日志独立开关
     // Login method toggles
-    ENABLE_PASSWORD_AUTH: z.coerce.boolean().default(true),
-    ENABLE_GITHUB_AUTH: z.coerce.boolean().default(true),
-    ENABLE_GOOGLE_AUTH: z.coerce.boolean().default(false),
+    ENABLE_PASSWORD_AUTH: z
+      .string()
+      .optional()
+      .default('true')
+      .transform((val) => {
+        if (val === 'false' || val === '0' || val === '') return false
+        if (val === 'true' || val === '1') return true
+        return Boolean(val)
+      }),
+    ENABLE_GITHUB_AUTH: z
+      .string()
+      .optional()
+      .default('true')
+      .transform((val) => {
+        if (val === 'false' || val === '0' || val === '') return false
+        if (val === 'true' || val === '1') return true
+        return Boolean(val)
+      }),
+    ENABLE_GOOGLE_AUTH: z
+      .string()
+      .optional()
+      .default('false')
+      .transform((val) => {
+        if (val === 'false' || val === '0' || val === '') return false
+        if (val === 'true' || val === '1') return true
+        return Boolean(val)
+      }),
     // 支付宝配置（可选）
     ALIPAY_APPID: z.string().optional(),
     ALIPAY_PRIVATE_KEY: z.string().optional(),
     ALIPAY_PUBLIC_KEY: z.string().optional(),
-    ALIPAY_NOTIFY_URL: z.string().url().optional(),
+    ALIPAY_NOTIFY_URL: z.url().optional(),
     // 微信支付配置（可选）
     WECHAT_PAY_APPID: z.string().optional(),
     WECHAT_PAY_MCHID: z.string().optional(),
@@ -58,13 +90,22 @@ export const env = createEnv({
     VOLCENGINE_SECRET_KEY: z.string().optional(),
     VOLCENGINE_REGION: z.string().default('cn-north-1'),
 
-    TASK_SCHEDULER_ENABLED: z.coerce.boolean().default(true), // 调度器开关
+    TASK_SCHEDULER_ENABLED: z
+      .string()
+      .optional()
+      .default('true')
+      .transform((val) => {
+        if (val === 'false' || val === '0' || val === '') return false
+        if (val === 'true' || val === '1') return true
+        return Boolean(val)
+      }), // 调度器开关
     TASK_SCHEDULER_INTERVAL: z.coerce.number().default(5), // 主循环间隔（秒）
     TASK_ASYNC_POLL_INTERVAL: z.coerce.number().default(60), // 异步查询间隔（秒）
     TASK_TIMEOUT_MINUTES: z.coerce.number().default(30), // 同步任务超时恢复时间（分钟）
     TASK_ASYNC_TIMEOUT_MINUTES: z.coerce.number().default(120), // 异步任务超时恢复时间（分钟）
     TASK_MAX_RETRIES: z.coerce.number().default(3), // 任务最大重试次数
-    TASK_BATCH_SIZE: z.coerce.number().default(10), // 每次拉取任务数
+    TASK_BATCH_SIZE: z.coerce.number().default(50), // 每次拉取任务数（性能优化：从 10 增加到 50）
+    TASK_CONCURRENCY: z.coerce.number().default(10), // 任务并发执行数（防止 API 限流和资源耗尽）
 
     // TTS API 配置（可选，未配置时相关任务立即失败）
     TTS_API_BASE_URL: z.url().optional(),
