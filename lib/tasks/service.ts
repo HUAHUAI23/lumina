@@ -14,6 +14,7 @@ import {
   calculateVideoEstimatedCost,
   chargeForTask,
   refundTask,
+  withBillingQueue,
 } from './billing'
 import { TaskNotFoundError } from './errors'
 import type { CreateTaskParams, Task, TaskStatusType, TaskTypeType } from './types'
@@ -55,47 +56,50 @@ async function create(params: CreateTaskParams) {
       throw new Error(`不支持的任务类别: ${category}`)
   }
 
-  return db.transaction(async (tx) => {
-    // 预扣费（会检查余额）
-    // 先创建任务获取 ID
-    const [task] = await tx
-      .insert(tasks)
-      .values({
-        accountId,
-        name: name || '',
-        category,
-        type,
-        mode,
-        status: TaskStatus.PENDING,
-        config,
-        pricingId: pricing.id,
-        billingType: pricing.billingType,
-        estimatedCost: cost,
-        estimatedUsage: estimatedUsage.toString(),
-      })
-      .returning()
+  // 使用计费队列确保同一账户的扣费操作串行执行，避免并发锁冲突
+  return withBillingQueue(accountId, () =>
+    db.transaction(async (tx) => {
+      // 预扣费（会检查余额）
+      // 先创建任务获取 ID
+      const [task] = await tx
+        .insert(tasks)
+        .values({
+          accountId,
+          name: name || '',
+          category,
+          type,
+          mode,
+          status: TaskStatus.PENDING,
+          config,
+          pricingId: pricing.id,
+          billingType: pricing.billingType,
+          estimatedCost: cost,
+          estimatedUsage: estimatedUsage.toString(),
+        })
+        .returning()
 
-    // 扣费
-    await chargeForTask(tx, accountId, task.id, cost)
+      // 扣费
+      await chargeForTask(tx, accountId, task.id, cost)
 
-    // 创建输入资源记录
-    if (inputs.length > 0) {
-      await tx.insert(taskResources).values(
-        inputs.map((input) => ({
-          taskId: task.id,
-          resourceType: input.type,
-          isInput: true,
-          url: input.url,
-          metadata: input.metadata || {},
-        }))
-      )
-    }
+      // 创建输入资源记录
+      if (inputs.length > 0) {
+        await tx.insert(taskResources).values(
+          inputs.map((input) => ({
+            taskId: task.id,
+            resourceType: input.type,
+            isInput: true,
+            url: input.url,
+            metadata: input.metadata || {},
+          }))
+        )
+      }
 
-    // 记录日志（传递事务上下文）
-    await logTaskCreated(task.id, cost, tx)
+      // 记录日志（传递事务上下文）
+      await logTaskCreated(task.id, cost, tx)
 
-    return task
-  })
+      return task
+    })
+  )
 }
 
 /**

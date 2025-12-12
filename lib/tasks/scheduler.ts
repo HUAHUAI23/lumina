@@ -4,6 +4,7 @@
 
 import { Cron } from 'croner'
 import { and, eq, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
+import pLimit from 'p-limit'
 
 import { db } from '@/db'
 import { tasks } from '@/db/schema'
@@ -66,13 +67,43 @@ async function runMainLoop(): Promise<void> {
       logger.info({ count: pendingTasks.length }, '🔄 [主循环] 领取到待处理任务')
     }
 
-    // 2. 执行任务
-    for (const task of pendingTasks) {
-      try {
-        await executeTask(task)
-      } catch (error) {
-        logger.error({ taskId: task.id, error }, '任务执行异常')
-      }
+    // 2. 执行任务（并行执行 + 限流控制 + 防重检查）
+    if (pendingTasks.length > 0) {
+      const startTime = Date.now()
+      const executedTaskIds = new Set<number>()
+      const limit = pLimit(env.TASK_CONCURRENCY) // 创建限流器（局部变量，自动释放）
+
+      await Promise.all(
+        pendingTasks.map((task) =>
+          limit(async () => {
+            // 防止重复执行（防御性编程，保持与异步查询循环一致）
+            if (executedTaskIds.has(task.id)) {
+              logger.warn({ taskId: task.id }, '⚠️ [主循环] 检测到重复任务，跳过')
+              return
+            }
+
+            executedTaskIds.add(task.id)
+
+            try {
+              await executeTask(task)
+            } catch (error) {
+              logger.error({ taskId: task.id, error }, '❌ [主循环] 任务执行异常')
+            }
+          })
+        )
+      )
+
+      // 性能监控
+      const duration = Date.now() - startTime
+      logger.info(
+        {
+          count: pendingTasks.length,
+          duration,
+          avgPerTask: Math.round(duration / pendingTasks.length),
+          concurrency: env.TASK_CONCURRENCY,
+        },
+        `✅ [主循环] 批量执行完成`
+      )
     }
 
     // 3. 恢复超时任务
@@ -123,29 +154,46 @@ async function runAsyncPollLoop(): Promise<void> {
       return claimed
     })
 
-    // 处理每个任务
-    for (const task of tasksToQuery) {
-      // 防止重复查询
-      if (queriedTaskIds.has(task.id)) {
-        logger.warn({ taskId: task.id }, '⚠️ [异步查询循环] 检测到重复任务，跳过')
-        continue
-      }
+    // 处理每个任务（并行执行 + 限流控制 + 防重检查）
+    if (tasksToQuery.length > 0) {
+      const startTime = Date.now()
+      const limit = pLimit(env.TASK_CONCURRENCY) // 创建限流器（局部变量，自动释放）
 
-      queriedTaskIds.add(task.id)
+      await Promise.all(
+        tasksToQuery.map((task) =>
+          limit(async () => {
+            // 防止重复查询（防御性编程）
+            if (queriedTaskIds.has(task.id)) {
+              logger.warn({ taskId: task.id }, '⚠️ [异步查询循环] 检测到重复任务，跳过')
+              return
+            }
 
-      try {
-        await queryAsyncTask(task)
-      } catch (error) {
-        const err = error as Error
-        logger.error(
-          { taskId: task.id, error: err.message, stack: err.stack },
-          '❌ [异步查询循环] 单个任务查询异常'
+            queriedTaskIds.add(task.id)
+
+            try {
+              await queryAsyncTask(task)
+            } catch (error) {
+              const err = error as Error
+              logger.error(
+                { taskId: task.id, error: err.message, stack: err.stack },
+                '❌ [异步查询循环] 单个任务查询异常'
+              )
+            }
+          })
         )
-      }
-    }
+      )
 
-    if (queriedTaskIds.size > 0) {
-      logger.info({ count: queriedTaskIds.size }, '🔄 [异步查询循环] 已查询异步任务')
+      // 性能监控
+      const duration = Date.now() - startTime
+      logger.info(
+        {
+          count: queriedTaskIds.size,
+          duration,
+          avgPerTask: queriedTaskIds.size > 0 ? Math.round(duration / queriedTaskIds.size) : 0,
+          concurrency: env.TASK_CONCURRENCY,
+        },
+        '✅ [异步查询循环] 批量查询完成'
+      )
     }
   } catch (error) {
     const err = error as Error

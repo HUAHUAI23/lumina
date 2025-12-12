@@ -738,3 +738,196 @@ export interface AudioMetadata extends BaseMetadata {
 
 /** 资源元数据联合类型（当前只实现了图片和视频） */
 export type ResourceMetadata = ImageMetadata | VideoMetadata | AudioMetadata
+
+// ==================== 工作流系统枚举 ====================
+
+/** 工作流状态 */
+export const workflowStatusEnum = pgEnum('workflow_status', ['running', 'completed', 'failed'])
+
+/** 工作流执行模式 */
+export const workflowExecModeEnum = pgEnum('workflow_exec_mode', [
+  'all', // 执行所有起点（包括孤立节点）
+  'specified_starts', // 指定起点执行
+  'isolated_nodes', // 仅执行孤立节点
+])
+
+// ==================== 工作流定义表 ====================
+
+export const workflows = pgTable(
+  'workflows',
+  {
+    id: serial('id').primaryKey(),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => accounts.id),
+
+    // 基本信息
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description'),
+
+    // 工作流定义（JSON）
+    nodes: jsonb('nodes').$type<WorkflowNode[]>().notNull(),
+    edges: jsonb('edges').$type<WorkflowEdge[]>().notNull(),
+    variables: jsonb('variables')
+      .$type<Record<string, WorkflowVariableDefinition>>()
+      .default(sql`'{}'::jsonb`),
+
+    // 元数据
+    isActive: boolean('is_active').default(true).notNull(),
+    version: integer('version').default(1).notNull(),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [index('idx_workflow_account').on(table.accountId)]
+)
+
+// ==================== 工作流任务表 ====================
+
+export const workflowTasks = pgTable(
+  'workflow_tasks',
+  {
+    id: serial('id').primaryKey(),
+    accountId: integer('account_id')
+      .notNull()
+      .references(() => accounts.id),
+    workflowId: integer('workflow_id')
+      .notNull()
+      .references(() => workflows.id),
+
+    // 执行模式
+    execMode: workflowExecModeEnum('exec_mode').notNull(),
+    /** 指定的起始节点ID数组 */
+    startNodeIds: jsonb('start_node_ids').$type<string[]>(),
+
+    // 状态
+    status: workflowStatusEnum('status').notNull().default('running'),
+
+    // 核心：节点执行状态 { nodeId: NodeState }
+    nodeStates: jsonb('node_states').$type<Record<string, NodeState>>().notNull().default(sql`'{}'::jsonb`),
+
+    // 运行时变量（实际传入的值 + 执行过程中动态设置的变量）
+    runtimeVariables: jsonb('runtime_variables').$type<Record<string, unknown>>().default(sql`'{}'::jsonb`),
+
+    // 计费汇总
+    totalEstimatedCost: integer('total_estimated_cost').default(0).notNull(),
+    totalActualCost: integer('total_actual_cost').default(0).notNull(),
+
+    // 错误信息
+    errorNodeId: varchar('error_node_id', { length: 64 }),
+    errorMessage: text('error_message'),
+
+    // 时间戳
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdateFn(() => new Date()),
+  },
+  (table) => [
+    index('idx_workflow_task_account').on(table.accountId),
+    index('idx_workflow_task_status').on(table.status),
+    index('idx_workflow_task_reconcile').on(table.status, table.updatedAt),
+  ]
+)
+
+// ==================== 工作流日志表 ====================
+
+export const workflowLogs = pgTable(
+  'workflow_logs',
+  {
+    id: serial('id').primaryKey(),
+    workflowTaskId: integer('workflow_task_id')
+      .notNull()
+      .references(() => workflowTasks.id, { onDelete: 'cascade' }),
+
+    // 日志级别
+    level: varchar('level', { length: 16 }).notNull().default('info'),
+
+    // 关联节点ID（可选）
+    nodeId: varchar('node_id', { length: 64 }),
+
+    // 日志消息
+    message: text('message').notNull(),
+
+    // 详细数据
+    data: jsonb('data').$type<Record<string, unknown>>(),
+
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('idx_workflow_log_task').on(table.workflowTaskId),
+    index('idx_workflow_log_created').on(table.createdAt),
+  ]
+)
+
+// ==================== 工作流类型定义 ====================
+
+/** 节点连接点 */
+export interface Handle {
+  id: string
+  position: 'top' | 'right' | 'bottom' | 'left'
+  type: 'source' | 'target'
+  condition?: string
+}
+
+/** 工作流边 */
+export interface WorkflowEdge {
+  id: string
+  type: 'normal' | 'condition'
+  source: string
+  target: string
+  condition?: string
+  source_handle?: string
+  target_handle?: string
+}
+
+/** 基础节点 */
+export interface WorkflowNodeBase {
+  id: string
+  type: string
+  name: string
+  position?: { x: number; y: number }
+  handles?: Handle[]
+  description?: string
+  execMode: 'sync' | 'async'
+  config: Record<string, unknown>
+}
+
+/** 工作流节点（存储用，详细类型定义在 lib/workflows/types.ts） */
+export type WorkflowNode = WorkflowNodeBase
+
+/** 工作流变量定义 */
+export interface WorkflowVariableDefinition {
+  type: 'string' | 'number' | 'boolean' | 'url'
+  defaultValue?: unknown
+  description?: string
+}
+
+/** 节点输出资源 */
+export interface NodeOutputResource {
+  type: 'video' | 'image' | 'audio' | 'text'
+  url: string
+  metadata?: ResourceMetadata
+}
+
+/** 节点输出 */
+export interface NodeStateOutput {
+  resources?: NodeOutputResource[]
+  variables?: Record<string, unknown>
+}
+
+/** 节点执行状态 */
+export interface NodeState {
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+  taskId?: number
+  output?: NodeStateOutput
+  error?: string
+  startedAt?: string
+  completedAt?: string
+}

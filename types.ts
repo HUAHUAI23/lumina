@@ -22,6 +22,8 @@ export enum TaskType {
   IMAGE_IMG2IMG = 'image_img2img',
   IMAGE_3D_MODEL = 'image_3d_model',
   AUDIO_TTS = 'audio_tts',
+  // Workflows (组合任务)
+  DIGITAL_HUMAN = 'digital_human',
 }
 
 export interface User {

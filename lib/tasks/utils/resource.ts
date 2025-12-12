@@ -5,6 +5,7 @@
 import { getOutputPath, uploadFromUrl } from '@/lib/tos'
 
 import type { TaskOutputResource } from '../types'
+import { TaskTypeType } from '../types'
 
 import { generateOutputFilename } from './filename'
 
@@ -14,11 +15,12 @@ import { generateOutputFilename } from './filename'
 export async function uploadOutputResource(params: {
   taskId: number
   accountId: number
-  taskType: string
+  taskType: TaskTypeType
   output: TaskOutputResource
   index: number
+  preserveOriginalUrl?: boolean
 }): Promise<TaskOutputResource> {
-  const { taskId, accountId, taskType, output, index } = params
+  const { taskId, accountId, taskType, output, index, preserveOriginalUrl = true } = params
 
   // 1. 获取 Content-Type（用于推断扩展名）
   let contentType: string | null = null
@@ -51,7 +53,7 @@ export async function uploadOutputResource(params: {
     url: tosUrl,
     metadata: {
       ...output.metadata,
-      originalUrl: output.url,
+      originalUrl: preserveOriginalUrl ? output.url : undefined,
       filename,
       contentType: contentType || undefined,
     },

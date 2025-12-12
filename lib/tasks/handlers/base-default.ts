@@ -9,6 +9,7 @@ import { logger as baseLogger } from '@/lib/logger'
 import { refundTask, settleTask } from '../billing'
 import type { CompletionContext, CompletionResult, FailureContext } from '../core/context'
 import { BaseHandler } from '../core/handler'
+import { TaskType, TaskTypeType } from '../types'
 import { calculateActualCostFromUsage } from '../utils/cost'
 import {
   calculateRetryDelay,
@@ -55,6 +56,7 @@ export abstract class DefaultHandler extends BaseHandler {
         '📤 [Handler] 开始上传输出资源到TOS'
       )
 
+      const preserveOriginalUrl = shouldPreserveOriginalUrl(task.type)
       const uploadedOutputs = await Promise.all(
         outputs.map((output, index) =>
           uploadOutputResource({
@@ -63,6 +65,7 @@ export abstract class DefaultHandler extends BaseHandler {
             taskType: task.type,
             output,
             index,
+            preserveOriginalUrl,
           })
         )
       )
@@ -271,4 +274,18 @@ export abstract class DefaultHandler extends BaseHandler {
    * 子类可重写此方法添加失败时的额外处理
    */
   protected async onFailure?(_context: FailureContext): Promise<void>
+}
+
+/**
+ * 判断是否需要保留原始 URL
+ * 某些任务类型（如 AUDIO_TTS）不需要保留原始 URL 以减少元数据大小或保护隐私
+ */
+function shouldPreserveOriginalUrl(taskType: TaskTypeType): boolean {
+  // AUDIO_TTS 不需要保留原始 URL
+  if (taskType === TaskType.AUDIO_TTS) {
+    return false
+  }
+
+  // 其他任务类型默认保留原始 URL
+  return true
 }
