@@ -35,6 +35,7 @@ import { generateStyleImages, generateVideo } from '@/services/geminiService';
 import { Asset, FileWithPreview, TaskType } from '@/types';
 
 import AudioTtsForm from './components/AudioTtsForm';
+import DigitalHumanForm from './components/DigitalHumanForm';
 import VideoLipsyncForm from './components/VideoLipsyncForm';
 import VideoMotionForm from './components/VideoMotionForm';
 
@@ -78,7 +79,7 @@ interface TaskDetail {
 
 const VideoStudio: React.FC = () => {
   // --- Left Panel State ---
-  const [activeTask, setActiveTask] = useState<TaskType>(TaskType.VIDEO_MOTION);
+  const [activeTask, setActiveTask] = useState<TaskType>(TaskType.DIGITAL_HUMAN);
   const [isTaskSelectorOpen, setTaskSelectorOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -252,6 +253,13 @@ const VideoStudio: React.FC = () => {
 
   const videoTasks = [
     {
+      id: TaskType.DIGITAL_HUMAN,
+      label: 'Digital Human',
+      description: 'Complete talking avatar pipeline',
+      icon: Sparkles,
+      highlight: true,
+    },
+    {
       id: TaskType.VIDEO_MOTION,
       label: 'Motion Transfer',
       description: 'Transfer movement between videos',
@@ -333,14 +341,19 @@ const VideoStudio: React.FC = () => {
                       setActiveTask(task.id);
                       setTaskSelectorOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 p-3.5 transition-colors text-left border-b border-zinc-900 last:border-0 
+                    className={`w-full flex items-center gap-3 p-3.5 transition-colors text-left border-b border-zinc-900 last:border-0
                       ${activeTask === task.id ? 'bg-zinc-900/80' : 'hover:bg-zinc-900/50'}
                       ${task.disabled ? 'cursor-not-allowed' : ''}
+                      ${task.highlight && activeTask !== task.id ? 'bg-gradient-to-r from-indigo-900/20 via-purple-900/10 to-pink-900/20' : ''}
                     `}
                   >
                     <task.icon
                       className={`w-4 h-4 ${
-                        activeTask === task.id ? 'text-indigo-400' : 'text-zinc-600'
+                        task.highlight
+                          ? 'text-purple-400'
+                          : activeTask === task.id
+                          ? 'text-indigo-400'
+                          : 'text-zinc-600'
                       }`}
                     />
                     <div className="flex-1">
@@ -350,6 +363,11 @@ const VideoStudio: React.FC = () => {
                         }`}
                       >
                         {task.label}
+                        {task.highlight && (
+                          <span className="text-[8px] text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30 bg-purple-500/10 font-black tracking-widest">
+                            PIPELINE
+                          </span>
+                        )}
                         {task.disabled && (
                           <span className="text-[9px] text-amber-500 px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 font-black tracking-widest shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                             COMING SOON
@@ -372,6 +390,11 @@ const VideoStudio: React.FC = () => {
 
         {/* Form Content */}
         <div className="p-6 space-y-8 flex-1 overflow-y-auto custom-scrollbar">
+          {/* 0. Digital Human Workflow (FULL PIPELINE) */}
+          {activeTask === TaskType.DIGITAL_HUMAN && (
+            <DigitalHumanForm onSuccess={handleMotionSuccess} userBalance={userBalance} />
+          )}
+
           {/* 1. Motion Transfer Mode (REAL BACKEND) */}
           {activeTask === TaskType.VIDEO_MOTION && (
             <VideoMotionForm onSuccess={handleMotionSuccess} userBalance={userBalance} />
@@ -861,6 +884,9 @@ const VideoStudio: React.FC = () => {
 
                   {/* Type Icon */}
                   <div className="absolute bottom-0 right-0 p-1 bg-black/60 backdrop-blur-sm">
+                    {task.type === TaskType.DIGITAL_HUMAN && (
+                      <Sparkles className="w-3 h-3 text-purple-400" />
+                    )}
                     {task.type === TaskType.VIDEO_MOTION && (
                       <Activity className="w-3 h-3 text-zinc-400" />
                     )}

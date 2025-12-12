@@ -1,7 +1,17 @@
 // db/relations.ts
 import { relations } from 'drizzle-orm'
 
-import { accounts, chargeOrders, tasks, transactions, userIdentities, users } from './schema'
+import {
+  accounts,
+  chargeOrders,
+  tasks,
+  transactions,
+  userIdentities,
+  users,
+  workflowLogs,
+  workflows,
+  workflowTasks,
+} from './schema'
 
 /**
  * 用户关系定义
@@ -99,5 +109,55 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   task: one(tasks, {
     fields: [transactions.taskId],
     references: [tasks.id],
+  }),
+}))
+
+// ==================== 工作流关系 ====================
+
+/**
+ * 工作流关系定义
+ * - 每个工作流属于一个账户：多对一
+ * - 一个工作流可以有多个工作流任务：一对多
+ */
+export const workflowsRelations = relations(workflows, ({ one, many }) => ({
+  // 多对一：每个工作流属于一个账户
+  account: one(accounts, {
+    fields: [workflows.accountId],
+    references: [accounts.id],
+  }),
+  // 一对多：一个工作流可以有多个工作流任务
+  workflowTasks: many(workflowTasks),
+}))
+
+/**
+ * 工作流任务关系定义
+ * - 每个工作流任务属于一个账户：多对一
+ * - 每个工作流任务关联一个工作流定义：多对一
+ * - 一个工作流任务可以有多个日志：一对多
+ */
+export const workflowTasksRelations = relations(workflowTasks, ({ one, many }) => ({
+  // 多对一：每个工作流任务属于一个账户
+  account: one(accounts, {
+    fields: [workflowTasks.accountId],
+    references: [accounts.id],
+  }),
+  // 多对一：每个工作流任务关联一个工作流定义
+  workflow: one(workflows, {
+    fields: [workflowTasks.workflowId],
+    references: [workflows.id],
+  }),
+  // 一对多：一个工作流任务可以有多个日志
+  logs: many(workflowLogs),
+}))
+
+/**
+ * 工作流日志关系定义
+ * - 每条日志属于一个工作流任务：多对一
+ */
+export const workflowLogsRelations = relations(workflowLogs, ({ one }) => ({
+  // 多对一：每条日志属于一个工作流任务
+  workflowTask: one(workflowTasks, {
+    fields: [workflowLogs.workflowTaskId],
+    references: [workflowTasks.id],
   }),
 }))

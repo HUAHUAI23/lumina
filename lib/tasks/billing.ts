@@ -3,6 +3,7 @@
  */
 
 import { eq, InferSelectModel } from 'drizzle-orm'
+import pLimit from 'p-limit'
 
 import { db } from '@/db'
 import { accounts, pricing, transactions } from '@/db/schema'
@@ -15,6 +16,40 @@ import type { Task, TaskTypeType } from './types'
 import { TASK_TYPE_TO_CATEGORY } from './types'
 import { BillingType, TaskCategory } from './types'
 const logger = baseLogger.child({ module: 'tasks/billing' })
+
+/**
+ * 账户计费队列
+ * 每个账户一个队列，限制并发为 1，避免同一账户并发扣费时的锁冲突
+ */
+const accountBillingQueues = new Map<number, ReturnType<typeof pLimit>>()
+
+/**
+ * 获取账户的计费队列（懒加载）
+ */
+function getAccountBillingQueue(accountId: number): ReturnType<typeof pLimit> {
+  let queue = accountBillingQueues.get(accountId)
+  if (!queue) {
+    queue = pLimit(1) // 每个账户并发限制为 1
+    accountBillingQueues.set(accountId, queue)
+  }
+  return queue
+}
+
+/**
+ * 在账户计费队列中执行操作
+ * 确保同一账户的计费操作串行执行，避免并发锁冲突
+ *
+ * @param accountId 账户 ID
+ * @param operation 要执行的操作
+ * @returns 操作结果
+ */
+export async function withBillingQueue<T>(
+  accountId: number,
+  operation: () => Promise<T>
+): Promise<T> {
+  const queue = getAccountBillingQueue(accountId)
+  return queue(operation)
+}
 
 /**
  * 获取任务类型的价格配置 (当前只实现 BillingType.PER_UNIT 计费方式)
